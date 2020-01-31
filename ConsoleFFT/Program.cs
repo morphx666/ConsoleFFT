@@ -31,9 +31,14 @@ namespace ConsoleFFT {
         static readonly object lckObj = new object();
 
         private static void Main(string[] args) {
+            PrintHeader();
+
             try {
-                ParseCommandline(args);
-            } catch {
+                if(!ParseCommandline(args)) return;
+            } catch(Exception e) {
+                Console.WriteLine(e.Message);
+                Console.WriteLine();
+                PrintDocumentation();
                 return;
             }
 
@@ -70,6 +75,7 @@ namespace ConsoleFFT {
             });
 
             Console.ReadKey();
+            Console.CursorVisible = true;
         }
 
         private static void RenderFFT() {
@@ -128,7 +134,7 @@ namespace ConsoleFFT {
             stdo.Write(b, 0, b.Length);
         }
 
-        private static void ParseCommandline(string[] args) {
+        private static bool ParseCommandline(string[] args) {
             for(int i = 0; i < args.Length; i++) {
                 string param = "";
                 string value = "";
@@ -149,7 +155,7 @@ namespace ConsoleFFT {
                 switch(param) {
                     case "list": // List available devices
                         ListAvailableCaptureDevices();
-                        return;
+                        return false;
                     case "device": // Set capture device
                         int deviceIndex;
                         if(!int.TryParse(value, out deviceIndex)) throw new ArgumentException("Invalid argument value", value);
@@ -192,15 +198,18 @@ namespace ConsoleFFT {
                         if(!double.TryParse(value, out scale)) throw new ArgumentException("Invalid argument value", value);
                         break;
                     case "help": // Show documentation
-                                 //ShowDocumentation();
-                        break;
+                        PrintDocumentation();
+                        return false;
                     default:
                         throw new ArgumentException("Unknown argument", param);
                 }
             }
+            return true;
         }
 
         private static void ListAvailableCaptureDevices() {
+            Console.WriteLine("Capture Devices:\r\n");
+
             string defaultDevice = AudioCapture.DefaultDevice;
             IList<string> devices = AudioCapture.AvailableDevices;
             if(devices.Count > 0) {
@@ -212,6 +221,22 @@ namespace ConsoleFFT {
             } else {
                 Console.WriteLine("No capture/recoding devices found");
             }
+        }
+
+        private static void PrintHeader() {
+            Console.WriteLine($"ConsoleFFT {System.Reflection.Assembly.GetExecutingAssembly().GetName().Version}");
+            Console.WriteLine();
+        }
+
+        private static void PrintDocumentation() {
+            Console.WriteLine("Parameters:\r\n");
+            Console.WriteLine("-list: List available audio capturing devices");
+            Console.WriteLine("-device=n: Set capture to devices by its index. Setting n=0 will select the default device.");
+            Console.WriteLine("-frequency=n: Set the sampling rate frequency. By default, set to 44,100 KHz");
+            Console.WriteLine("-bits=n: Set the sampling bit rate. Valid values are 8 or 16. By default, set to 16 bits");
+            Console.WriteLine("-fft=n: Set the size of Fourier transform. By default, set to 1,024 bands");
+            Console.WriteLine("-scale=n: Set the graph scale. By default, set to 0.0001");
+            Console.WriteLine("-help: This printout");
         }
     }
 }
