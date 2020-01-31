@@ -58,7 +58,6 @@ namespace ConsoleFFT {
                         break;
                     } else if(fftWavDstIndex >= fftSize) {
                         fftWavDstIndex = 0;
-                        RunFFT();
                         break;
                     }
 
@@ -81,7 +80,7 @@ namespace ConsoleFFT {
         private static (int Width,int Height) FFT2Pts(int x, int w, int h, int fftSize, double scale = 1.0) {
             double v = 0;
 
-            v = ((FFTAvg(x) / fftWindowSum * 2) / 20.0) * scale;
+            v = ((FFTAvg(x) / fftWindowSum * 2.0) / 20.0) * scale;
             v = Math.Min(Math.Log10(v + 1) / 10.0 * w, h);
             x = (int)Math.Min(Math.Log10(x + 1) / Math.Log10(fftSize2 - 1) * w, w);
 

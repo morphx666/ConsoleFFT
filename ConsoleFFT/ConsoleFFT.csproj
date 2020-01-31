@@ -90,7 +90,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="FFT.cs" />
+    <Compile Include="..\..\CameraRTSP\CameraRTSP\Helpers\FFT.cs">
+      <Link>FFT.cs</Link>
+    </Compile>
     <Compile Include="FFTSupport.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

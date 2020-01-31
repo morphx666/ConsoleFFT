@@ -16,6 +16,7 @@ namespace ConsoleFFT {
         static int samplingRate = 44100;
         static int fftSize = 1024;
         static ALFormat samplingFormat = ALFormat.Mono16;
+        static double scale = 0.0001;
 
         static AudioCapture audioCapture;
 
@@ -60,7 +61,8 @@ namespace ConsoleFFT {
 
             Task.Run(() => {
                 while(true) {
-                    Thread.Sleep(60);
+                    Thread.Sleep(30);
+                    if(fftWavDstIndex == 0) RunFFT();
                     RenderFFT();
                 }
             });
@@ -71,11 +73,12 @@ namespace ConsoleFFT {
         private static void RenderFFT() {
             int w = Console.WindowWidth;
             int h = Console.WindowHeight;
+            int h1 = (int)(h * 0.8);
+            int h2 = (int)(h * 0.3);
             byte[] b = new byte[w * h];
             if(!isWindows) b = b.Select(i => (byte)32).ToArray();
-            byte c = 0xDB; // █
-            //byte c = 0xFE; // ■
-            //byte c = 0xFA; // ·
+
+            byte[] c = { 0xDB, 0xFE, 0xFA }; // █ ■ ·
 
             if(isWindows)
                 Console.BufferHeight = Console.WindowHeight;
@@ -86,15 +89,21 @@ namespace ConsoleFFT {
             int newDivX;
             (int X, int Y) lastPL = (0, 0);
             int lastW = FFT2Pts(fftSize2 - 1, w, h, fftSize).Width;
+            byte bc;
             for(int x = 0; x < fftSize2; x++) {
-                (int Width, int Height) s = FFT2Pts(x, w, h, fftSize, 0.000001);
+                (int Width, int Height) s = FFT2Pts(x, w, h, fftSize, 0.0001);
                 newDivX = x / fftSize2 * (w - lastW) + s.Width;
 
                 if(x > 0) {
                     int v = Math.Min(h, lastPL.Y);
                     for(int xi = lastPL.X; xi < newDivX; xi++) {
                         for(int yi = h - v; yi < h; yi++) {
-                            b[yi * w + xi] = c;
+
+                            if(yi > h1) bc = c[0];
+                            else if(yi > h2) bc = c[1];
+                            else bc = c[2];
+
+                            b[yi * w + xi] = bc;
                         }
                     }
                 }
@@ -176,6 +185,9 @@ namespace ConsoleFFT {
                         break;
                     case "fft": // Set FFT size
                         if(!int.TryParse(value, out fftSize)) throw new ArgumentException("Invalid argument value", value);
+                        break;
+                    case "scale": // Set FFT scale
+                        if(!double.TryParse(value, out scale)) throw new ArgumentException("Invalid argument value", value);
                         break;
                     case "help": // Show documentation
                                  //ShowDocumentation();
