@@ -35,7 +35,7 @@ namespace ConsoleFFT {
             ffWavSrcBufIndex = 0;
         }
 
-        private static void GetSamples() {
+        private static void GetSamples(object lckObk) {
             int availableSamples = audioCapture.AvailableSamples;
             if(availableSamples * SampleToByte > buffer.Length * BlittableValueType.StrideOf(buffer)) {
                 buffer = new short[MathHelper.NextPowerOfTwo(
@@ -45,7 +45,7 @@ namespace ConsoleFFT {
 
             if(availableSamples > 0) {
                 audioCapture.ReadSamples(buffer, availableSamples);
-                FillFFTBuffer();
+                lock(lckObk) FillFFTBuffer();
             }
         }
 

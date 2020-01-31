@@ -14,7 +14,7 @@ namespace ConsoleFFT {
     public partial class Program {
         static string deviceName = "";
         static int samplingRate = 44100;
-        static int fftSize = 1024;
+        static int fftSize = 2048;
         static ALFormat samplingFormat = ALFormat.Mono16;
         static double scale = 0.0001;
 
@@ -25,8 +25,10 @@ namespace ConsoleFFT {
 
         const byte SampleToByte = 2;
 
-        static bool isWindows = Environment.OSVersion.Platform == PlatformID.Win32NT;
+        static readonly bool isWindows = Environment.OSVersion.Platform == PlatformID.Win32NT;
         static Stream stdo;
+
+        static readonly object lckObj = new object();
 
         private static void Main(string[] args) {
             try {
@@ -55,15 +57,15 @@ namespace ConsoleFFT {
             Task.Run(() => {
                 while(true) {
                     Thread.Sleep(delay);
-                    GetSamples();
+                    GetSamples(lckObj);
                 }
             });
 
             Task.Run(() => {
                 while(true) {
-                    Thread.Sleep(30);
+                    Thread.Sleep(delay);
                     if(fftWavDstIndex == 0) RunFFT();
-                    RenderFFT();
+                    lock(lckObj) RenderFFT();
                 }
             });
 
@@ -91,7 +93,7 @@ namespace ConsoleFFT {
             int lastW = FFT2Pts(fftSize2 - 1, w, h, fftSize).Width;
             byte bc;
             for(int x = 0; x < fftSize2; x++) {
-                (int Width, int Height) s = FFT2Pts(x, w, h, fftSize, 0.0001);
+                (int Width, int Height) s = FFT2Pts(x, w, h, fftSize, scale);
                 newDivX = x / fftSize2 * (w - lastW) + s.Width;
 
                 if(x > 0) {
