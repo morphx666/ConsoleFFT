@@ -73,16 +73,14 @@ namespace ConsoleFFT {
 
             // Shift history back one spot
             for(int i = 0; i < fftHistSize - 1; i++) Array.Copy(fftHist[i + 1], 0, fftHist[i], 0, fftSize2);
-                //for(int j = 0; j < fftSize2; j++) fftHist[i][j] = fftHist[i + 1][j];
+            //for(int j = 0; j < fftSize2; j++) fftHist[i][j] = fftHist[i + 1][j];
 
             // Update the last spot with the new data from the FFT using the Power() function.
             for(int i = 0; i < fftSize2; i++) fftHist[fftHistSize - 1][i] = fftBuffer[i].Power();
         }
 
         private static (int Width, int Height) FFT2Pts(int x, int w, int h, int fftSize, double scale = 1.0) {
-            double v = 0;
-
-            v = ((FFTAvg(x) / fftWindowSum * 2.0) / 20.0) * scale;
+            double v = ((FFTAvg(x) / fftWindowSum * 2.0) / 20.0) * scale;
             v = Math.Min(Math.Log10(v + 1) / 10.0 * w, h);
             x = (int)Math.Min(Math.Log10(x + 1) / Math.Log10(fftSize2 - 1) * w, w);
 

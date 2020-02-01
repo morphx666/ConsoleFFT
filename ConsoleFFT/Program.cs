@@ -16,7 +16,7 @@ namespace ConsoleFFT {
         static int samplingRate = 44100;
         static int fftSize = 2048;
         static ALFormat samplingFormat = ALFormat.Mono16;
-        static double scale = 0.00002;
+        static double scale = 0.000005;
 
         static AudioCapture audioCapture;
 
@@ -26,6 +26,9 @@ namespace ConsoleFFT {
 
         static readonly bool isWindows = Environment.OSVersion.Platform == PlatformID.Win32NT;
         static Stream stdo;
+
+        static int consoleWidth = 0;
+        static int consoleHeight = 0;
 
         private static void Main(string[] args) {
             PrintHeader();
@@ -52,8 +55,6 @@ namespace ConsoleFFT {
             audioCapture = new AudioCapture(deviceName, samplingRate, samplingFormat, bufferLengthSamples);
             audioCapture.Start();
 
-            Console.CursorVisible = false;
-            if(isWindows) Console.BufferHeight = Console.WindowHeight;
             stdo = Console.OpenStandardOutput();
 
             int delay = (int)(bufferLengthMs / 2 + 0.5);
@@ -76,11 +77,17 @@ namespace ConsoleFFT {
         }
 
         private static void RenderFFT() {
-            int w = Console.WindowWidth;
-            int h = Console.WindowHeight;
-            int h1 = (int)(h * 0.8);
-            int h2 = (int)(h * 0.3);
-            byte[] b = new byte[w * h - 1];
+            if(Console.WindowWidth != consoleWidth || Console.WindowHeight != consoleHeight) {
+                Console.Clear();
+                consoleWidth = Console.WindowWidth;
+                consoleHeight = Console.WindowHeight;
+                Console.CursorVisible = false;
+                if(isWindows) Console.BufferHeight = Console.WindowHeight;
+            }
+
+            int h1 = (int)(consoleHeight * 0.8);
+            int h2 = (int)(consoleHeight * 0.3);
+            byte[] b = new byte[consoleWidth * consoleHeight - (isWindows ? 1 : 0)];
             if(!isWindows) b = b.Select(i => (byte)32).ToArray();
 
             byte[] c = { 0xDB, 0xFE, 0xFA }; // █ ■ ·
@@ -90,17 +97,17 @@ namespace ConsoleFFT {
             // Log X/Y ==============================================================
             int newDivX;
             (int X, int Y) lastPL = (0, 0);
-            int lastW = FFT2Pts(fftSize2 - 1, w, h, fftSize).Width;
+            int lastW = FFT2Pts(fftSize2 - 1, consoleWidth, consoleHeight, fftSize).Width;
             byte bc;
             for(int x = 0; x < fftSize2; x++) {
-                (int Width, int Height) s = FFT2Pts(x, w, h, fftSize, scale);
-                newDivX = x / fftSize2 * (w - lastW) + s.Width;
+                (int Width, int Height) s = FFT2Pts(x, consoleWidth, consoleHeight, fftSize, scale);
+                newDivX = x / fftSize2 * (consoleWidth - lastW) + s.Width;
 
                 if(x > 0) {
-                    int v = Math.Min(h, lastPL.Y);
+                    int v = Math.Min(consoleHeight, lastPL.Y);
                     for(int xi = lastPL.X; xi < newDivX; xi++) {
-                        for(int yi = h - v; yi < h; yi++) {
-                            int index = yi * w + xi;
+                        for(int yi = consoleHeight - v; yi < consoleHeight; yi++) {
+                            int index = yi * consoleWidth + xi;
                             if(index < b.Length) {
                                 if(yi > h1) bc = c[0];
                                 else if(yi > h2) bc = c[1];
