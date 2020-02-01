@@ -70,8 +70,10 @@ namespace ConsoleFFT {
             Task.Run(() => {
                 while(true) {
                     Thread.Sleep(delay);
-                    if(fftWavDstIndex == 0) RunFFT();
-                    lock(lckObj) RenderFFT();
+                    lock(lckObj) {
+                        if(fftWavDstIndex == 0) RunFFT();
+                        RenderFFT();
+                    }
                 }
             });
 
@@ -105,13 +107,13 @@ namespace ConsoleFFT {
                     for(int xi = lastPL.X; xi < newDivX; xi++) {
                         for(int yi = h - v; yi < h; yi++) {
                             int index = yi * w + xi;
-                            if(index >= b.Length) break;
+                            if(index < b.Length) {
+                                if(yi > h1) bc = c[0];
+                                else if(yi > h2) bc = c[1];
+                                else bc = c[2];
 
-                            if(yi > h1) bc = c[0];
-                            else if(yi > h2) bc = c[1];
-                            else bc = c[2];
-
-                            b[index] = bc;
+                                b[index] = bc;
+                            }
                         }
                     }
                 }
