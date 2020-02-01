@@ -18,5 +18,5 @@ As of commit [8d73c81](https://github.com/morphx666/ConsoleFFT/tree/8d73c81c8caa
 - **-frequency=n**: Set the sampling rate frequency. By default, set to 44,100 KHz
 - **-bits=n**: Set the sampling bit rate. Valid values are 8 or 16. By default, set to 16 bits
 - **-fft=n**: Set the size of Fourier transform. By default, set to 1,024 bands
-- **-scale=n**: Set the graph scale. By default, set to 0.0001
+- **-scale=n**: Set the graph scale. By default, set to 0.000005
 - **-help**: This printout
