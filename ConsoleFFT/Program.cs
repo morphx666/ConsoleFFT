@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -52,10 +53,10 @@ namespace ConsoleFFT {
             double bufferLengthMs = 50;
             int bufferLengthSamples = (int)(bufferLengthMs * samplingRate * 0.001 / BlittableValueType.StrideOf(buffer));
 
+            stdout = Console.OpenStandardOutput();
+
             audioCapture = new AudioCapture(deviceName, samplingRate, samplingFormat, bufferLengthSamples);
             audioCapture.Start();
-
-            stdout = Console.OpenStandardOutput();
 
             int delay = (int)(bufferLengthMs / 2 + 0.5);
             Task.Run(() => {
@@ -227,7 +228,9 @@ namespace ConsoleFFT {
         }
 
         private static void PrintHeader() {
-            Console.WriteLine($"ConsoleFFT {System.Reflection.Assembly.GetExecutingAssembly().GetName().Version}");
+            string info = $"ConsoleFFT {System.Reflection.Assembly.GetExecutingAssembly().GetName().Version}";
+            Console.Title = info;
+            Console.WriteLine(info);
             Console.WriteLine();
         }
 
@@ -235,10 +238,10 @@ namespace ConsoleFFT {
             Console.WriteLine("Parameters:\r\n");
             Console.WriteLine("-list: List available audio capturing devices");
             Console.WriteLine("-device=n: Set capture to devices by its index. Setting n=0 will select the default device.");
-            Console.WriteLine("-frequency=n: Set the sampling rate frequency. By default, set to 44,100 KHz");
-            Console.WriteLine("-bits=n: Set the sampling bit rate. Valid values are 8 or 16. By default, set to 16 bits");
-            Console.WriteLine("-fft=n: Set the size of Fourier transform. By default, set to 1,024 bands");
-            Console.WriteLine("-scale=n: Set the graph scale. By default, set to 0.0001");
+            Console.WriteLine($"-frequency=n: Set the sampling rate frequency. By default, set to {samplingRate:N0} KHz");
+            Console.WriteLine($"-bits=n: Set the sampling bit rate. Valid values are 8 or 16. By default, set to {samplingFormat.ToString().Replace("Mono","")} bits");
+            Console.WriteLine($"-fft=n: Set the size of Fourier transform. By default, set to {fftSize:N0} bands");
+            Console.WriteLine($"-scale=n: Set the graph scale. By default, set to {scale:.################}"); // https://stackoverflow.com/questions/14964737/double-tostring-no-scientific-notation
             Console.WriteLine("-help: This printout");
         }
     }
