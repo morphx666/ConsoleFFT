@@ -14,7 +14,7 @@ namespace ConsoleFFT {
     public partial class Program {
         static string deviceName = "";
         static int samplingRate = 44100;
-        static int fftSize = 2048;
+        static int fftSize = 1024;
         static ALFormat samplingFormat = ALFormat.Mono16;
         static double scale = 0.000005;
 
@@ -25,7 +25,7 @@ namespace ConsoleFFT {
         const byte SampleToByte = 2;
 
         static readonly bool isWindows = Environment.OSVersion.Platform == PlatformID.Win32NT;
-        static Stream stdo;
+        static Stream stdout;
 
         static int consoleWidth = 0;
         static int consoleHeight = 0;
@@ -55,7 +55,7 @@ namespace ConsoleFFT {
             audioCapture = new AudioCapture(deviceName, samplingRate, samplingFormat, bufferLengthSamples);
             audioCapture.Start();
 
-            stdo = Console.OpenStandardOutput();
+            stdout = Console.OpenStandardOutput();
 
             int delay = (int)(bufferLengthMs / 2 + 0.5);
             Task.Run(() => {
@@ -134,7 +134,7 @@ namespace ConsoleFFT {
             //    }
             //}
 
-            stdo.Write(b, 0, b.Length);
+            stdout.Write(b, 0, b.Length);
         }
 
         private static bool ParseCommandline(string[] args) {

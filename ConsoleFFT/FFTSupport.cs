@@ -73,7 +73,6 @@ namespace ConsoleFFT {
 
             // Shift history back one spot
             for(int i = 0; i < fftHistSize - 1; i++) Array.Copy(fftHist[i + 1], 0, fftHist[i], 0, fftSize2);
-            //for(int j = 0; j < fftSize2; j++) fftHist[i][j] = fftHist[i + 1][j];
 
             // Update the last spot with the new data from the FFT using the Power() function.
             for(int i = 0; i < fftSize2; i++) fftHist[fftHistSize - 1][i] = fftBuffer[i].Power();
