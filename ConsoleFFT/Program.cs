@@ -56,6 +56,7 @@ namespace ConsoleFFT {
             audioCapture.Start();
 
             Console.CursorVisible = false;
+            if(isWindows) Console.BufferHeight = Console.WindowHeight;
             stdo = Console.OpenStandardOutput();
 
             int delay = (int)(bufferLengthMs / 2 + 0.5);
@@ -74,7 +75,7 @@ namespace ConsoleFFT {
                 }
             });
 
-            Console.ReadKey();
+            while(true) if(Console.ReadKey(true).Key == ConsoleKey.Escape) break;
             Console.CursorVisible = true;
         }
 
@@ -83,15 +84,12 @@ namespace ConsoleFFT {
             int h = Console.WindowHeight;
             int h1 = (int)(h * 0.8);
             int h2 = (int)(h * 0.3);
-            byte[] b = new byte[w * h];
+            byte[] b = new byte[w * h - 1];
             if(!isWindows) b = b.Select(i => (byte)32).ToArray();
 
             byte[] c = { 0xDB, 0xFE, 0xFA }; // █ ■ ·
 
-            if(isWindows)
-                Console.BufferHeight = Console.WindowHeight;
-            else
-                Console.Clear();
+            Console.SetCursorPosition(0, 0);
 
             // Log X/Y ==============================================================
             int newDivX;
@@ -106,12 +104,14 @@ namespace ConsoleFFT {
                     int v = Math.Min(h, lastPL.Y);
                     for(int xi = lastPL.X; xi < newDivX; xi++) {
                         for(int yi = h - v; yi < h; yi++) {
+                            int index = yi * w + xi;
+                            if(index >= b.Length) break;
 
                             if(yi > h1) bc = c[0];
                             else if(yi > h2) bc = c[1];
                             else bc = c[2];
 
-                            b[yi * w + xi] = bc;
+                            b[index] = bc;
                         }
                     }
                 }
