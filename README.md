@@ -20,3 +20,5 @@ As of commit [8d73c81](https://github.com/morphx666/ConsoleFFT/tree/8d73c81c8caa
 - **-fft=n**: Set the size of Fourier transform. By default, set to 1,024 bands
 - **-scale=n**: Set the graph scale. By default, set to 0.000005
 - **-help**: This printout
+
+All parameters are optional
