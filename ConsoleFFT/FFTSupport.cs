@@ -35,29 +35,29 @@ namespace ConsoleFFT {
             ffWavSrcBufIndex = 0;
         }
 
-        private static void GetSamples(object lckObk) {
+        private static void GetSamples() {
             int availableSamples = audioCapture.AvailableSamples;
             if(availableSamples * SampleToByte > buffer.Length * BlittableValueType.StrideOf(buffer)) {
                 buffer = new short[MathHelper.NextPowerOfTwo(
                     (int)(availableSamples * SampleToByte / (double)BlittableValueType.StrideOf(buffer) + 0.5))];
-                bufferLength = buffer.Length;
             }
 
             if(availableSamples > 0) {
                 audioCapture.ReadSamples(buffer, availableSamples);
-                lock(lckObk) FillFFTBuffer();
+                FillFFTBuffer(availableSamples);
             }
         }
 
-        private static void FillFFTBuffer() {
+        private static void FillFFTBuffer(int availableSamples) {
             do {
                 while(true) {
-                    if(ffWavSrcBufIndex >= bufferLength) {
+                    if(ffWavSrcBufIndex >= availableSamples) {
                         if(fftWavDstIndex >= fftSize) fftWavDstIndex = 0;
                         ffWavSrcBufIndex = 0;
                         break;
                     } else if(fftWavDstIndex >= fftSize) {
                         fftWavDstIndex = 0;
+                        RunFFT();
                         break;
                     }
 
@@ -71,13 +71,15 @@ namespace ConsoleFFT {
         private static void RunFFT() {
             FourierTransform(fftSize, fftWavDstBufL, ref fftBuffer, false);
 
-            for(int i = 0; i < fftHistSize - 1; i++)
-                for(int j = 0; j < fftSize2; j++) fftHist[i][j] = fftHist[i + 1][j];
+            // Shift history back one spot
+            for(int i = 0; i < fftHistSize - 1; i++) Array.Copy(fftHist[i + 1], 0, fftHist[i], 0, fftSize2);
+                //for(int j = 0; j < fftSize2; j++) fftHist[i][j] = fftHist[i + 1][j];
 
+            // Update the last spot with the new data from the FFT using the Power() function.
             for(int i = 0; i < fftSize2; i++) fftHist[fftHistSize - 1][i] = fftBuffer[i].Power();
         }
 
-        private static (int Width,int Height) FFT2Pts(int x, int w, int h, int fftSize, double scale = 1.0) {
+        private static (int Width, int Height) FFT2Pts(int x, int w, int h, int fftSize, double scale = 1.0) {
             double v = 0;
 
             v = ((FFTAvg(x) / fftWindowSum * 2.0) / 20.0) * scale;

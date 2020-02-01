@@ -16,19 +16,16 @@ namespace ConsoleFFT {
         static int samplingRate = 44100;
         static int fftSize = 2048;
         static ALFormat samplingFormat = ALFormat.Mono16;
-        static double scale = 0.0001;
+        static double scale = 0.00002;
 
         static AudioCapture audioCapture;
 
         static short[] buffer = new short[512];
-        static int bufferLength = buffer.Length;
 
         const byte SampleToByte = 2;
 
         static readonly bool isWindows = Environment.OSVersion.Platform == PlatformID.Win32NT;
         static Stream stdo;
-
-        static readonly object lckObj = new object();
 
         private static void Main(string[] args) {
             PrintHeader();
@@ -63,17 +60,14 @@ namespace ConsoleFFT {
             Task.Run(() => {
                 while(true) {
                     Thread.Sleep(delay);
-                    GetSamples(lckObj);
+                    GetSamples();
                 }
             });
 
             Task.Run(() => {
                 while(true) {
                     Thread.Sleep(delay);
-                    lock(lckObj) {
-                        if(fftWavDstIndex == 0) RunFFT();
-                        RenderFFT();
-                    }
+                    RenderFFT();
                 }
             });
 
