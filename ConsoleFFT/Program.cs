@@ -243,6 +243,9 @@ namespace ConsoleFFT {
             Console.WriteLine($"-fft=n: Set the size of Fourier transform. By default, set to {fftSize:N0} bands");
             Console.WriteLine($"-scale=n: Set the graph scale. By default, set to {scale:.################}"); // https://stackoverflow.com/questions/14964737/double-tostring-no-scientific-notation
             Console.WriteLine("-help: This printout");
+
+            Console.WriteLine();
+            Console.WriteLine("All parameters are optional");
         }
     }
 }
