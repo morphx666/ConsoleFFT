@@ -22,6 +22,10 @@ namespace ConsoleFFT {
         static AudioCapture audioCapture;
 
         static short[] buffer = new short[512];
+        static byte[] conBuffer;
+        static int h1;
+        static int h2;
+        static readonly byte[] c = { 0xDB, 0xFE, 0xFA }; // █ ■ ·
 
         const byte SampleToByte = 2;
 
@@ -84,14 +88,16 @@ namespace ConsoleFFT {
                 consoleHeight = Console.WindowHeight;
                 Console.CursorVisible = false;
                 if(isWindows) Console.BufferHeight = Console.WindowHeight;
+
+                h1 = (int)(consoleHeight * 0.8);
+                h2 = (int)(consoleHeight * 0.3);
+                conBuffer = new byte[consoleWidth * consoleHeight - (isWindows ? 1 : 0)];
             }
 
-            int h1 = (int)(consoleHeight * 0.8);
-            int h2 = (int)(consoleHeight * 0.3);
-            byte[] b = new byte[consoleWidth * consoleHeight - (isWindows ? 1 : 0)];
-            if(!isWindows) b = b.Select(i => (byte)32).ToArray();
-
-            byte[] c = { 0xDB, 0xFE, 0xFA }; // █ ■ ·
+            if(isWindows) 
+                Array.Clear(conBuffer, 0, conBuffer.Length);
+            else 
+                conBuffer = conBuffer.Select(i => (byte)32).ToArray();
 
             Console.SetCursorPosition(0, 0);
 
@@ -109,12 +115,12 @@ namespace ConsoleFFT {
                     for(int xi = lastPL.X; xi < newDivX; xi++) {
                         for(int yi = consoleHeight - v; yi < consoleHeight; yi++) {
                             int index = yi * consoleWidth + xi;
-                            if(index < b.Length) {
+                            if(index < conBuffer.Length) {
                                 if(yi > h1) bc = c[0];
                                 else if(yi > h2) bc = c[1];
                                 else bc = c[2];
 
-                                b[index] = bc;
+                                conBuffer[index] = bc;
                             }
                         }
                     }
@@ -122,7 +128,7 @@ namespace ConsoleFFT {
                 lastPL = (newDivX, s.Height);
             }
 
-            // Y Log ================================================================
+            // Lin X / Log Y ========================================================
             //for(int x = 0; x < fftSize2; x++) {
             //    int xi = (int)(x * (double)w / fftSize2);
 
@@ -135,7 +141,7 @@ namespace ConsoleFFT {
             //    }
             //}
 
-            stdout.Write(b, 0, b.Length);
+            stdout.Write(conBuffer, 0, conBuffer.Length);
         }
 
         private static bool ParseCommandline(string[] args) {
