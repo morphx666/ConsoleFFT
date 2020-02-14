@@ -177,7 +177,7 @@ namespace ConsoleFFT {
             int h2 = consoleHeight / 2;
             int ch = consoleHeight - 2;
             int l = fftWavDstBufL.Length;
-            double f = short.MaxValue * scale * 10000.0;
+            double f = short.MaxValue * scale * 30000.0;
             for(int i = 0; i < l; i++) {
                 int x = (int)((double)i / l * consoleWidth);
                 int y = (ushort)(fftWavDstBufL[i] / f * h2 + h2);
@@ -298,7 +298,9 @@ namespace ConsoleFFT {
             Console.WriteLine("All parameters are optional");
 
             Console.WriteLine();
-            Console.WriteLine("While running, press [SPACE] to switch between rendering modes");
+            Console.WriteLine("While running:");
+            Console.WriteLine("    Press [SPACE] to switch between rendering modes");
+            Console.WriteLine("    Press [ESC] to exit");
         }
     }
 }
