@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection.Emit;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -15,6 +16,12 @@ namespace ConsoleFFT {
             Waveform = 1
         }
         private static RenderModes renderMode = RenderModes.FFT;
+
+        public enum RenderCharModes {
+            Simple = 0,
+            Multiple = 1
+        }
+        private static RenderCharModes renderCharMode = RenderCharModes.Simple;
 
         private static string deviceName = "";
         private static int samplingRate = 44100;
@@ -105,6 +112,16 @@ namespace ConsoleFFT {
                                 break;
                         }
                         break;
+                    case ConsoleKey.C:
+                        switch(renderCharMode) {
+                            case RenderCharModes.Simple:
+                                renderCharMode = RenderCharModes.Multiple;
+                                break;
+                            case RenderCharModes.Multiple:
+                                renderCharMode = RenderCharModes.Simple;
+                                break;
+                        }
+                        break;
                 }
             }
             Console.CursorVisible = true;
@@ -136,7 +153,7 @@ namespace ConsoleFFT {
             int newDivX;
             (int X, int Y) lastPL = (0, 0);
             int lastW = FFT2Pts(fftSize2 - 1, consoleWidth, consoleHeight, fftSize).Width;
-            byte bc;
+            byte bc = c[0];
             for(int x = 0; x < fftSize2; x++) {
                 (int Width, int Height) s = FFT2Pts(x, consoleWidth, consoleHeight, fftSize, scale);
                 newDivX = x / fftSize2 * (consoleWidth - lastW) + s.Width;
@@ -147,9 +164,13 @@ namespace ConsoleFFT {
                         for(int yi = consoleHeight - v; yi < consoleHeight; yi++) {
                             int index = yi * consoleWidth + xi;
                             if(index < conBuffer.Length) {
-                                if(yi > h1) bc = c[0];
-                                else if(yi > h2) bc = c[1];
-                                else bc = c[2];
+                                switch(renderCharMode) {
+                                    case RenderCharModes.Multiple:
+                                        if(yi > h1) bc = c[0];
+                                        else if(yi > h2) bc = c[1];
+                                        else bc = c[2];
+                                        break;
+                                }
 
                                 conBuffer[index] = bc;
                             }
@@ -174,16 +195,31 @@ namespace ConsoleFFT {
         }
 
         private static void RenderWaveform() {
-            int h2 = consoleHeight / 2;
-            int ch = consoleHeight - 2;
+            int h = consoleHeight;
+            int ch2 = h / 2;
+            int ch3 = h / 4;
+            int ch = h - 2;
             int l = fftWavDstBufL.Length;
+            byte bc = c[0];
             double f = short.MaxValue * scale * 30000.0;
+            int x;
+            int y;
             for(int i = 0; i < l; i++) {
-                int x = (int)((double)i / l * consoleWidth);
-                int y = (ushort)(fftWavDstBufL[i] / f * h2 + h2);
+                x = (int)((double)i / l * consoleWidth);
+                y = (ushort)(fftWavDstBufL[i] / f * ch2 + ch2);
                 if(y < ch) {
                     int index = y * consoleWidth + x;
-                    conBuffer[index] = c[0];
+                    switch(renderCharMode) {
+                        case RenderCharModes.Multiple:
+                            if(y < ch3 || y > h - ch3)
+                                bc = c[2];
+                            else if(y < h2 - ch3 || y > h2 + ch3)
+                                bc = c[1];
+                            else
+                                bc = c[0];
+                            break;
+                    }
+                    conBuffer[index] = bc;
                 }
             }
         }
@@ -281,7 +317,6 @@ namespace ConsoleFFT {
             string info = $"ConsoleFFT {System.Reflection.Assembly.GetExecutingAssembly().GetName().Version}";
             Console.Title = info;
             Console.WriteLine(info);
-            Console.WriteLine();
         }
 
         private static void PrintDocumentation() {
@@ -297,10 +332,15 @@ namespace ConsoleFFT {
             Console.WriteLine();
             Console.WriteLine("All parameters are optional");
 
+            PrintShortcuts();
+        }
+
+        private static void PrintShortcuts() {
             Console.WriteLine();
             Console.WriteLine("While running:");
-            Console.WriteLine("    Press [SPACE] to switch between rendering modes");
-            Console.WriteLine("    Press [ESC] to exit");
+            Console.WriteLine("    [SPACE] to switch between rendering modes");
+            Console.WriteLine("    [C] switch between the rendering character set");
+            Console.WriteLine("    [ESC] to exit");
         }
     }
 }
