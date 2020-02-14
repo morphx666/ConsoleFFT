@@ -3,37 +3,40 @@ using OpenTK.Audio;
 using OpenTK.Audio.OpenAL;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace ConsoleFFT {
     public partial class Program {
-        static string deviceName = "";
-        static int samplingRate = 44100;
-        static int fftSize = 1024;
-        static ALFormat samplingFormat = ALFormat.Mono16;
-        static double scale = 0.000005;
+        private enum RenderModes {
+            FFT = 0,
+            Waveform = 1
+        }
+        private static RenderModes renderMode = RenderModes.FFT;
 
-        static AudioCapture audioCapture;
+        private static string deviceName = "";
+        private static int samplingRate = 44100;
+        private static int fftSize = 1024;
+        private static ALFormat samplingFormat = ALFormat.Mono16;
+        private static double scale = 0.000005;
 
-        static short[] buffer = new short[512];
-        static byte[] conBuffer;
-        static int h1;
-        static int h2;
-        static readonly byte[] c = { 0xDB, 0xFE, 0xFA }; // █ ■ ·
+        private static AudioCapture audioCapture;
 
-        const byte SampleToByte = 2;
+        private static short[] buffer = new short[512];
+        private static byte[] conBuffer;
+        private static int h1;
+        private static int h2;
+        private static readonly byte[] c = { 0xDB, 0xFE, 0xFA }; // █ ■ ·
 
-        static readonly bool isWindows = Environment.OSVersion.Platform == PlatformID.Win32NT;
-        static Stream stdout;
+        private const byte SampleToByte = 2;
 
-        static int consoleWidth = 0;
-        static int consoleHeight = 0;
+        private static readonly bool isWindows = Environment.OSVersion.Platform == PlatformID.Win32NT;
+        private static Stream stdout;
+
+        private static int consoleWidth = 0;
+        private static int consoleHeight = 0;
 
         private static void Main(string[] args) {
             PrintHeader();
@@ -73,15 +76,41 @@ namespace ConsoleFFT {
             Task.Run(() => {
                 while(true) {
                     Thread.Sleep(delay);
-                    RenderFFT();
+                    InitRenderer();
+                    switch(renderMode) {
+                        case RenderModes.FFT:
+                            RenderFFT();
+                            break;
+                        case RenderModes.Waveform:
+                            RenderWaveform();
+                            break;
+                    }
+                    stdout.Write(conBuffer, 0, conBuffer.Length);
                 }
             });
 
-            while(true) if(Console.ReadKey(true).Key == ConsoleKey.Escape) break;
+            bool doLoop = true;
+            while(doLoop) {
+                switch(Console.ReadKey(true).Key) {
+                    case ConsoleKey.Escape:
+                        doLoop = false;
+                        break;
+                    case ConsoleKey.Spacebar:
+                        switch(renderMode) {
+                            case RenderModes.FFT:
+                                renderMode = RenderModes.Waveform;
+                                break;
+                            case RenderModes.Waveform:
+                                renderMode = RenderModes.FFT;
+                                break;
+                        }
+                        break;
+                }
+            }
             Console.CursorVisible = true;
         }
 
-        private static void RenderFFT() {
+        private static void InitRenderer() {
             if(Console.WindowWidth != consoleWidth || Console.WindowHeight != consoleHeight) {
                 Console.Clear();
                 consoleWidth = Console.WindowWidth;
@@ -94,13 +123,15 @@ namespace ConsoleFFT {
                 conBuffer = new byte[consoleWidth * consoleHeight - (isWindows ? 1 : 0)];
             }
 
-            if(isWindows) 
+            if(isWindows)
                 Array.Clear(conBuffer, 0, conBuffer.Length);
-            else 
+            else
                 conBuffer = conBuffer.Select(i => (byte)32).ToArray();
 
             Console.SetCursorPosition(0, 0);
+        }
 
+        private static void RenderFFT() {
             // Log X/Y ==============================================================
             int newDivX;
             (int X, int Y) lastPL = (0, 0);
@@ -140,8 +171,21 @@ namespace ConsoleFFT {
             //        b[y * w + xi] = c;
             //    }
             //}
+        }
 
-            stdout.Write(conBuffer, 0, conBuffer.Length);
+        private static void RenderWaveform() {
+            int h2 = consoleHeight / 2;
+            int ch = consoleHeight - 2;
+            int l = fftWavDstBufL.Length;
+            double f = short.MaxValue * scale * 10000.0;
+            for(int i = 0; i < l; i++) {
+                int x = (int)((double)i / l * consoleWidth);
+                int y = (ushort)(fftWavDstBufL[i] / f * h2 + h2);
+                if(y < ch) {
+                    int index = y * consoleWidth + x;
+                    conBuffer[index] = c[0];
+                }
+            }
         }
 
         private static bool ParseCommandline(string[] args) {
@@ -245,13 +289,16 @@ namespace ConsoleFFT {
             Console.WriteLine("-list: List available audio capturing devices");
             Console.WriteLine("-device=n: Set capture to devices by its index. Setting n=0 will select the default device.");
             Console.WriteLine($"-frequency=n: Set the sampling rate frequency. By default, set to {samplingRate:N0} KHz");
-            Console.WriteLine($"-bits=n: Set the sampling bit rate. Valid values are 8 or 16. By default, set to {samplingFormat.ToString().Replace("Mono","")} bits");
+            Console.WriteLine($"-bits=n: Set the sampling bit rate. Valid values are 8 or 16. By default, set to {samplingFormat.ToString().Replace("Mono", "")} bits");
             Console.WriteLine($"-fft=n: Set the size of Fourier transform. By default, set to {fftSize:N0} bands");
             Console.WriteLine($"-scale=n: Set the graph scale. By default, set to {scale:.################}"); // https://stackoverflow.com/questions/14964737/double-tostring-no-scientific-notation
             Console.WriteLine("-help: This printout");
 
             Console.WriteLine();
             Console.WriteLine("All parameters are optional");
+
+            Console.WriteLine();
+            Console.WriteLine("While running, press [SPACE] to switch between rendering modes");
         }
     }
 }

@@ -1,9 +1,5 @@
 ﻿using OpenTK;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using static FFTLib.FFT;
 
 namespace ConsoleFFT {
@@ -57,11 +53,21 @@ namespace ConsoleFFT {
                         break;
                     } else if(fftWavDstIndex >= fftSize) {
                         fftWavDstIndex = 0;
-                        RunFFT();
+                        switch(renderMode) {
+                            case RenderModes.FFT:
+                                RunFFT();
+                                break;
+                            case RenderModes.Waveform:
+                                //TODO: Implement Waveform averaging
+                                break;
+                        }
                         break;
                     }
 
-                    fftWavDstBufL[fftWavDstIndex] = buffer[ffWavSrcBufIndex] * fftWindowValues[fftWavDstIndex];
+                    fftWavDstBufL[fftWavDstIndex] = buffer[ffWavSrcBufIndex] *
+                        (renderMode == RenderModes.FFT ?
+                            fftWindowValues[fftWavDstIndex] : 1.0);
+
                     fftWavDstIndex++;
                     ffWavSrcBufIndex++;
                 }
