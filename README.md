@@ -23,3 +23,5 @@ As of commit [8d73c81](https://github.com/morphx666/ConsoleFFT/tree/8d73c81c8caa
 - **-help**: This printout
 
 All parameters are optional
+
+As of commit [20d6c11](https://github.com/morphx666/ConsoleFFT/commit/20d6c116f4eee4423e4aac6e93dcc056e6c5a2de) you can press the space bar to switch between FFT and Waveform display.
