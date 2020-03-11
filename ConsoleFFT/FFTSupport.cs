@@ -75,7 +75,7 @@ namespace ConsoleFFT {
         }
 
         private static void RunFFT() {
-            FourierTransform(fftSize, fftWavDstBufL, ref fftBuffer, false);
+            FourierTransform(fftSize, fftWavDstBufL, fftBuffer, false);
 
             // Shift history back one spot
             for(int i = 0; i < fftHistSize - 1; i++) Array.Copy(fftHist[i + 1], 0, fftHist[i], 0, fftSize2);

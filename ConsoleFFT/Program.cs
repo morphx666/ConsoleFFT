@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Reflection.Emit;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -50,15 +49,15 @@ namespace ConsoleFFT {
 
             try {
                 if(!ParseCommandline(args)) return;
-            } catch(Exception e) {
+            } catch(ArgumentException e) {
                 Console.WriteLine(e.Message);
                 Console.WriteLine();
                 PrintDocumentation();
                 return;
             }
 
-            if(deviceName == "") ParseCommandline(new string[1] { "-device=0" }); // Set default capture device
-
+            if(string.IsNullOrEmpty(deviceName)) ParseCommandline(new string[1] { "-device=0" }); // Set default capture device
+            
             InitFFT();
             StartMonitoring();
         }
@@ -148,6 +147,7 @@ namespace ConsoleFFT {
             Console.SetCursorPosition(0, 0);
         }
 
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0042:Deconstruct variable declaration", Justification = "<Pending>")]
         private static void RenderFFT() {
             // Log X/Y ==============================================================
             int newDivX;
@@ -226,7 +226,7 @@ namespace ConsoleFFT {
 
         private static bool ParseCommandline(string[] args) {
             for(int i = 0; i < args.Length; i++) {
-                string param = "";
+                string param;
                 string value = "";
 
                 if(args[i].Contains('=')) {
