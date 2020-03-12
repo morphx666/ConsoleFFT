@@ -8,7 +8,7 @@ namespace ConsoleFFT {
         static double[] fftWindowValues;
         static double[][] fftHist;
         static ComplexDouble[] fftBuffer;
-        static int fftHistSize = 4;
+        static int fftHistSize = 8;
         static int fftSize2;
         static int fftWavDstIndex;
         static int ffWavSrcBufIndex;

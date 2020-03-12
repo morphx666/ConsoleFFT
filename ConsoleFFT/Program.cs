@@ -63,8 +63,8 @@ namespace ConsoleFFT {
         }
 
         private static void StartMonitoring() {
-            double bufferLengthMs = 50;
-            int bufferLengthSamples = (int)(bufferLengthMs * samplingRate * 0.001 / BlittableValueType.StrideOf(buffer));
+            double bufferLengthMs = 15;
+            int bufferLengthSamples = (int)(bufferLengthMs * samplingRate * 0.002 / BlittableValueType.StrideOf(buffer));
 
             stdout = Console.OpenStandardOutput();
 
@@ -147,7 +147,6 @@ namespace ConsoleFFT {
             Console.SetCursorPosition(0, 0);
         }
 
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0042:Deconstruct variable declaration", Justification = "<Pending>")]
         private static void RenderFFT() {
             // Log X/Y ==============================================================
             int newDivX;
