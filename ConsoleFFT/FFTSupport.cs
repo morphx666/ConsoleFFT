@@ -3,16 +3,16 @@ using System;
 using static FFTLib.FFT;
 
 namespace ConsoleFFT {
-    public partial class Program {
-        static double[] fftWavDstBufL;
-        static double[] fftWindowValues;
-        static double[][] fftHist;
-        static ComplexDouble[] fftBuffer;
-        static int fftHistSize = 8;
-        static int fftSize2;
-        static int fftWavDstIndex;
-        static int ffWavSrcBufIndex;
-        static double fftWindowSum;
+    public static partial class Program {
+        private static double[] fftWavDstBufL;
+        private static double[] fftWindowValues;
+        private static double[][] fftHist;
+        private static ComplexDouble[] fftBuffer;
+        private static int fftHistSize = 8;
+        private static int fftSize2;
+        private static int fftWavDstIndex;
+        private static int ffWavSrcBufIndex;
+        private static double fftWindowSum;
 
         private static void InitFFT() {
             fftSize2 = (int)fftSize / 2;
@@ -85,7 +85,7 @@ namespace ConsoleFFT {
         }
 
         private static (int Width, int Height) FFT2Pts(int x, int w, int h, int fftSize, double scale = 1.0) {
-            double v = ((FFTAvg(x) / fftWindowSum * 2.0) / 20.0) * scale;
+            double v = (FFTAvg(x) / fftWindowSum) / 10.0 * scale;
             v = Math.Min(Math.Log10(v + 1) / 10.0 * w, h);
             x = (int)Math.Min(Math.Log10(x + 1) / Math.Log10(fftSize2 - 1) * w, w);
 

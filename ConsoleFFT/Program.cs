@@ -9,7 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace ConsoleFFT {
-    public partial class Program {
+    public static partial class Program {
         private enum RenderModes {
             FFT = 0,
             Waveform = 1
@@ -26,7 +26,7 @@ namespace ConsoleFFT {
         private static int samplingRate = 44100;
         private static int fftSize = 1024;
         private static ALFormat samplingFormat = ALFormat.Mono16;
-        private static double scale = 0.000005;
+        private static double scale = 0.00008;
 
         private static AudioCapture audioCapture;
 
@@ -57,7 +57,7 @@ namespace ConsoleFFT {
             }
 
             if(string.IsNullOrEmpty(deviceName)) ParseCommandline(new string[1] { "-device=0" }); // Set default capture device
-            
+
             InitFFT();
             StartMonitoring();
         }
@@ -200,7 +200,7 @@ namespace ConsoleFFT {
             int ch = h - 2;
             int l = fftWavDstBufL.Length;
             byte bc = c[0];
-            double f = short.MaxValue * scale * 30000.0;
+            double f = short.MaxValue / (scale * 100000.0);
             int x;
             int y;
             for(int i = 0; i < l; i++) {
