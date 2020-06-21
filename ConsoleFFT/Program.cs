@@ -91,7 +91,7 @@ namespace ConsoleFFT {
                             RenderWaveform();
                             break;
                     }
-                    stdout.Write(conBuffer, 0, conBuffer.Length);
+                    stdout.Write(conBuffer, 0, conBuffer.Length - (isWindows ? 1 : 0));
                 }
             });
 
@@ -121,6 +121,12 @@ namespace ConsoleFFT {
                                 break;
                         }
                         break;
+                    case ConsoleKey.Add:
+                        scale *= 1.1;
+                        break;
+                    case ConsoleKey.Subtract:
+                        scale /= 1.1;
+                        break;
                 }
             }
             Console.CursorVisible = true;
@@ -132,17 +138,13 @@ namespace ConsoleFFT {
                 consoleWidth = Console.WindowWidth;
                 consoleHeight = Console.WindowHeight;
                 Console.CursorVisible = false;
-                if(isWindows) Console.BufferHeight = Console.WindowHeight;
 
                 h1 = (int)(consoleHeight * 0.8);
                 h2 = (int)(consoleHeight * 0.3);
-                conBuffer = new byte[consoleWidth * consoleHeight - (isWindows ? 1 : 0)];
+                conBuffer = new byte[consoleWidth * consoleHeight];
             }
 
-            if(isWindows)
-                Array.Clear(conBuffer, 0, conBuffer.Length);
-            else
-                conBuffer = conBuffer.Select(i => (byte)32).ToArray();
+            conBuffer = conBuffer.Select(i => (byte)32).ToArray();
 
             Console.SetCursorPosition(0, 0);
         }
@@ -154,7 +156,7 @@ namespace ConsoleFFT {
             int lastW = FFT2Pts(fftSize2 - 1, consoleWidth, consoleHeight, fftSize).Width;
             byte bc = c[0];
             for(int x = 0; x < fftSize2; x++) {
-                (int Width, int Height) s = FFT2Pts(x, consoleWidth, consoleHeight, fftSize, scale);
+                (int Width, int Height) s = FFT2Pts(x, consoleWidth, consoleHeight, fftSize, scale / 100.0);
                 newDivX = x / fftSize2 * (consoleWidth - lastW) + s.Width;
 
                 if(x > 0) {
@@ -200,7 +202,7 @@ namespace ConsoleFFT {
             int ch = h - 2;
             int l = fftWavDstBufL.Length;
             byte bc = c[0];
-            double f = short.MaxValue / (scale * 100000.0);
+            double f = short.MaxValue / (scale * 40000.0);
             int x;
             int y;
             for(int i = 0; i < l; i++) {
