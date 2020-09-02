@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -26,7 +27,8 @@ namespace ConsoleFFT {
         private static int samplingRate = 44100;
         private static int fftSize = 1024;
         private static ALFormat samplingFormat = ALFormat.Mono16;
-        private static double scale = 0.00008;
+        private static double scaleFFT = 0.01;
+        private static double scaleWav = 0.001;
 
         private static AudioCapture audioCapture;
 
@@ -35,6 +37,7 @@ namespace ConsoleFFT {
         private static int h1;
         private static int h2;
         private static readonly byte[] c = { 0xDB, 0xFE, 0xFA }; // █ ■ ·
+        private static readonly byte[] c1 = { 0xDC, 0xFE, 0xDF }; // ▄ ■ ▀
 
         private const byte SampleToByte = 2;
 
@@ -43,6 +46,9 @@ namespace ConsoleFFT {
 
         private static int consoleWidth = 0;
         private static int consoleHeight = 0;
+
+        private const int helpDelay = 400;
+        private static int showHelpDelay = helpDelay;
 
         private static void Main(string[] args) {
             PrintHeader();
@@ -92,6 +98,7 @@ namespace ConsoleFFT {
                             break;
                     }
                     stdout.Write(conBuffer, 0, conBuffer.Length - (isWindows ? 1 : 0));
+                    PrintHelp();
                 }
             });
 
@@ -110,6 +117,7 @@ namespace ConsoleFFT {
                                 renderMode = RenderModes.FFT;
                                 break;
                         }
+                        showHelpDelay = helpDelay;
                         break;
                     case ConsoleKey.C:
                         switch(renderCharMode) {
@@ -120,12 +128,29 @@ namespace ConsoleFFT {
                                 renderCharMode = RenderCharModes.Simple;
                                 break;
                         }
+                        showHelpDelay = helpDelay;
                         break;
                     case ConsoleKey.Add:
-                        scale *= 1.1;
+                        switch(renderMode) {
+                            case RenderModes.FFT:
+                                scaleFFT *= 1.1;
+                                break;
+                            case RenderModes.Waveform:
+                                scaleWav *= 1.1;
+                                break;
+                        }
+                        showHelpDelay = helpDelay;
                         break;
                     case ConsoleKey.Subtract:
-                        scale /= 1.1;
+                        switch(renderMode) {
+                            case RenderModes.FFT:
+                                scaleFFT /= 1.1;
+                                break;
+                            case RenderModes.Waveform:
+                                scaleWav /= 1.1;
+                                break;
+                        }
+                        showHelpDelay = helpDelay;
                         break;
                 }
             }
@@ -138,6 +163,7 @@ namespace ConsoleFFT {
                 consoleWidth = Console.WindowWidth;
                 consoleHeight = Console.WindowHeight;
                 Console.CursorVisible = false;
+                if(isWindows) Console.BufferHeight = consoleHeight;
 
                 h1 = (int)(consoleHeight * 0.8);
                 h2 = (int)(consoleHeight * 0.3);
@@ -156,7 +182,7 @@ namespace ConsoleFFT {
             int lastW = FFT2Pts(fftSize2 - 1, consoleWidth, consoleHeight, fftSize).Width;
             byte bc = c[0];
             for(int x = 0; x < fftSize2; x++) {
-                (int Width, int Height) s = FFT2Pts(x, consoleWidth, consoleHeight, fftSize, scale / 100.0);
+                (int Width, int Height) s = FFT2Pts(x, consoleWidth, consoleHeight, fftSize, scaleFFT / 100.0);
                 newDivX = x / fftSize2 * (consoleWidth - lastW) + s.Width;
 
                 if(x > 0) {
@@ -202,7 +228,7 @@ namespace ConsoleFFT {
             int ch = h - 2;
             int l = fftWavDstBufL.Length;
             byte bc = c[0];
-            double f = short.MaxValue / (scale * 40000.0);
+            double f = short.MaxValue / (scaleWav * 40000.0);
             int x;
             int y;
             for(int i = 0; i < l; i++) {
@@ -285,8 +311,11 @@ namespace ConsoleFFT {
                     case "fft": // Set FFT size
                         if(!int.TryParse(value, out fftSize)) throw new ArgumentException("Invalid argument value", value);
                         break;
-                    case "scale": // Set FFT scale
-                        if(!double.TryParse(value, out scale)) throw new ArgumentException("Invalid argument value", value);
+                    case "scaleFFT": // Set FFT scale
+                        if(!double.TryParse(value, out scaleFFT)) throw new ArgumentException("Invalid argument value", value);
+                        break;
+                    case "scaleWave": // Set WaveForm scale
+                        if(!double.TryParse(value, out scaleWav)) throw new ArgumentException("Invalid argument value", value);
                         break;
                     case "help": // Show documentation
                         PrintDocumentation();
@@ -314,6 +343,18 @@ namespace ConsoleFFT {
             }
         }
 
+        private static void PrintHelp() {
+            if(showHelpDelay > 0) {
+                Console.SetCursorPosition(0, 0);
+                Console.WriteLine($"[+][-]  ScaleFFT: {scaleFFT:F6}");
+                Console.WriteLine($"[+][-]  ScaleWav: {scaleWav:F6}");
+                Console.WriteLine($"[C]     Style:    {renderCharMode}");
+                Console.WriteLine($"[SPACE] Mode:     {renderMode}");
+                Console.WriteLine($"[ESC]   Exit");
+                showHelpDelay--;
+            }
+        }
+
         private static void PrintHeader() {
             string info = $"ConsoleFFT {System.Reflection.Assembly.GetExecutingAssembly().GetName().Version}";
             Console.Title = info;
@@ -327,7 +368,8 @@ namespace ConsoleFFT {
             Console.WriteLine($"-frequency=n: Set the sampling rate frequency. By default, set to {samplingRate:N0} KHz");
             Console.WriteLine($"-bits=n: Set the sampling bit rate. Valid values are 8 or 16. By default, set to {samplingFormat.ToString().Replace("Mono", "")} bits");
             Console.WriteLine($"-fft=n: Set the size of Fourier transform. By default, set to {fftSize:N0} bands");
-            Console.WriteLine($"-scale=n: Set the graph scale. By default, set to {scale:.################}"); // https://stackoverflow.com/questions/14964737/double-tostring-no-scientific-notation
+            Console.WriteLine($"-scaleFFT=n: Set the FFT graph scale. By default, set to {scaleFFT:.################}"); // https://stackoverflow.com/questions/14964737/double-tostring-no-scientific-notation
+            Console.WriteLine($"-scaleWav=n: Set the WaveForm graph scale. By default, set to {scaleWav:.################}");
             Console.WriteLine("-help: This printout");
 
             Console.WriteLine();
@@ -339,6 +381,7 @@ namespace ConsoleFFT {
         private static void PrintShortcuts() {
             Console.WriteLine();
             Console.WriteLine("While running:");
+            Console.WriteLine("    [+][-] to change the graphic scale");
             Console.WriteLine("    [SPACE] to switch between rendering modes");
             Console.WriteLine("    [C] switch between the rendering character set");
             Console.WriteLine("    [ESC] to exit");
