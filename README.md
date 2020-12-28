@@ -6,7 +6,7 @@ Cross-platform Console based FFT display
 This project uses the [OpenTK](https://opentk.net/) framework.
 - Under Windows you should install OpenAL from https://openal.org/downloads/
 - Under Linux you should install `libopenal1`.
-- Under MacOS Tiger and above, OpenAL is already included in Sound Manger
+- Under MacOS Tiger and above, OpenAL is already included in Sound Manager
 
 For usage information, run ConsoleFFT with the optional `help` parameter:
 

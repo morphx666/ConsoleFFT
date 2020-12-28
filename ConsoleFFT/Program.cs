@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -97,8 +96,8 @@ namespace ConsoleFFT {
                             RenderWaveform();
                             break;
                     }
-                    stdout.Write(conBuffer, 0, conBuffer.Length - (isWindows ? 1 : 0));
                     PrintHelp();
+                    stdout.Write(conBuffer, 0, conBuffer.Length - (isWindows ? 1 : 0));
                 }
             });
 
@@ -263,19 +262,17 @@ namespace ConsoleFFT {
                     param = args[i];
                 }
 
-                if(param.StartsWith("-")) {
+                if(param.StartsWith("-"))
                     param = param.Substring(1);
-                } else {
+                else
                     throw new ArgumentException("Invalid argument", param);
-                }
 
                 switch(param) {
                     case "list": // List available devices
                         ListAvailableCaptureDevices();
                         return false;
                     case "device": // Set capture device
-                        int deviceIndex;
-                        if(!int.TryParse(value, out deviceIndex)) throw new ArgumentException("Invalid argument value", value);
+                        if(!int.TryParse(value, out int deviceIndex)) throw new ArgumentException("Invalid argument value", value);
 
                         string defaultDevice = AudioCapture.DefaultDevice;
                         IList<string> devices = AudioCapture.AvailableDevices;
@@ -295,8 +292,7 @@ namespace ConsoleFFT {
                         if(!int.TryParse(value, out samplingRate)) throw new ArgumentException("Invalid argument value", value);
                         break;
                     case "bits": // Set bits per sample
-                        int b;
-                        if(!int.TryParse(value, out b)) throw new ArgumentException("Invalid argument value", value);
+                        if(!int.TryParse(value, out int b)) throw new ArgumentException("Invalid argument value", value);
                         switch(b) {
                             case 8:
                                 samplingFormat = ALFormat.Mono8;
@@ -335,22 +331,31 @@ namespace ConsoleFFT {
             if(devices.Count > 0) {
                 Console.WriteLine(" 0: Default Device");
 
-                for(int i = 0; i < devices.Count; i++) {
-                    Console.WriteLine($"{(i + 1).ToString().PadLeft(2, ' ')}: {devices[i]} {(devices[i] == defaultDevice ? " [*]" : "")}");
-                }
-            } else {
+                for(int i = 0; i < devices.Count; i++)
+                    Console.WriteLine($"{i + 1, 2}: {devices[i]} {(devices[i] == defaultDevice ? " [*]" : "")}");
+            } else
                 Console.WriteLine("No capture/recoding devices found");
-            }
         }
 
         private static void PrintHelp() {
             if(showHelpDelay > 0) {
-                Console.SetCursorPosition(0, 0);
-                Console.WriteLine($"[+][-]  ScaleFFT: {scaleFFT:F6}");
-                Console.WriteLine($"[+][-]  ScaleWav: {scaleWav:F6}");
-                Console.WriteLine($"[C]     Style:    {renderCharMode}");
-                Console.WriteLine($"[SPACE] Mode:     {renderMode}");
-                Console.WriteLine($"[ESC]   Exit");
+                string str = $"[+][-]  ScaleFFT: {scaleFFT:F6}\n" +
+                             $"[+][-]  ScaleWav: {scaleWav:F6}\n" +
+                             $"[C]     Style:    {renderCharMode}\n" +
+                             $"[SPACE] Mode:     {renderMode}\n" +
+                             $"[ESC]   Exit";
+
+                int x = 0;
+                int y = 0;
+                int k = 0;
+                while(k < str.Length) {
+                    if(str[k] == '\n') {
+                        x = 0;
+                        y++;
+                    } else
+                        conBuffer[y * consoleWidth + x++] = (byte)str[k];
+                    k++;
+                }
                 showHelpDelay--;
             }
         }
