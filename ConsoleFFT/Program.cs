@@ -153,6 +153,7 @@ namespace ConsoleFFT {
                         break;
                 }
             }
+            Console.Clear();
             Console.CursorVisible = true;
         }
 

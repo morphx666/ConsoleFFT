@@ -400,7 +400,7 @@ namespace FFTLib {
 
         private static int Fact(int x) {
             int n = 1;
-            for(int i = 0; i <= x; i++) {
+            for(int i = 2; i <= x; i++) {
                 n *= i;
             }
             return n;
