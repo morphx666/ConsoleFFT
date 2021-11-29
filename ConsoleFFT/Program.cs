@@ -2,6 +2,7 @@
 using OpenTK.Audio;
 using OpenTK.Audio.OpenAL;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -230,26 +231,39 @@ namespace ConsoleFFT {
             int l = fftWavDstBufL.Length;
             char bc = c[0];
             double f = short.MaxValue / (scaleWav * 40000.0);
-            int x;
-            int y;
+            int x, lx = 0;
+            int y, ly = ch2;
             for(int i = 0; i < l; i++) {
                 x = (int)((double)i / l * consoleWidth);
                 y = (ushort)(fftWavDstBufL[i] / f * ch2 + ch2);
-                if(y < ch) {
-                    int index = y * consoleWidth + x;
-                    switch(renderCharMode) {
-                        case RenderCharModes.Multiple:
-                            if(y < ch3 || y > h - ch3)
-                                bc = c[2];
-                            else if(y < h2 - ch3 || y > h2 + ch3)
-                                bc = c[1];
-                            else
-                                bc = c[0];
-                            break;
+
+                for(double p = 0; p < 1; p += 0.3) {
+                    int tx = Lerp(lx, x, p);
+                    int ty = Lerp(ly, y, p);
+
+                    if(ty < ch) {
+                        int index = ty * consoleWidth + tx;
+                        switch(renderCharMode) {
+                            case RenderCharModes.Multiple:
+                                if(ty < ch3 || ty > h - ch3)
+                                    bc = c[2];
+                                else if(ty < ch2 - ch3+4 || ty > ch2 + ch3-4)
+                                    bc = c[1];
+                                else
+                                    bc = c[0];
+                                break;
+                        }
+                        conBuffer[index] = bc;
                     }
-                    conBuffer[index] = bc;
+                    if(tx == x && ty == y) break;
                 }
+                lx = x;
+                ly = y;
             }
+        }
+        
+        private static int Lerp(int start, int end, double percentage) {
+            return (int)(start + percentage * (end - start));
         }
 
         private static bool ParseCommandline(string[] args) {

@@ -341,3 +341,4 @@ healthchecksdb
 
 # Remove Parrot sample from GitHub
 Parrot/
+.ionide
