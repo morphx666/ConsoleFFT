@@ -32,16 +32,15 @@ namespace ConsoleFFT {
         private static AudioCapture audioCapture;
 
         private static short[] buffer = new short[512];
-        private static byte[] conBuffer;
+        private static char[] conBuffer;
         private static int h1;
         private static int h2;
-        private static readonly byte[] c = { 0xDB, 0xFE, 0xFA }; // █ ■ ·
-        private static readonly byte[] c1 = { 0xDC, 0xFE, 0xDF }; // ▄ ■ ▀
+        private static readonly char[] c = { '\u2588', '\u25a0', '\u00b7' }; // █ ■ ·
 
         private const byte SampleToByte = 2;
 
         private static readonly bool isWindows = Environment.OSVersion.Platform == PlatformID.Win32NT;
-        private static Stream stdout;
+        private static StreamWriter stdout;
 
         private static int consoleWidth = 0;
         private static int consoleHeight = 0;
@@ -71,7 +70,7 @@ namespace ConsoleFFT {
             double bufferLengthMs = 15;
             int bufferLengthSamples = (int)(bufferLengthMs * samplingRate * 0.002 / BlittableValueType.StrideOf(buffer));
 
-            stdout = Console.OpenStandardOutput();
+            stdout = new StreamWriter(Console.OpenStandardOutput());
 
             audioCapture = new AudioCapture(deviceName, samplingRate, samplingFormat, bufferLengthSamples);
             audioCapture.Start();
@@ -98,6 +97,7 @@ namespace ConsoleFFT {
                     }
                     PrintHelp();
                     stdout.Write(conBuffer, 0, conBuffer.Length - (isWindows ? 1 : 0));
+                    stdout.Flush();
                 }
             });
 
@@ -160,6 +160,7 @@ namespace ConsoleFFT {
         private static void InitRenderer() {
             if(Console.WindowWidth != consoleWidth || Console.WindowHeight != consoleHeight) {
                 Console.Clear();
+                Console.OutputEncoding = System.Text.Encoding.UTF8; // chcp 65001
                 consoleWidth = Console.WindowWidth;
                 consoleHeight = Console.WindowHeight;
                 Console.CursorVisible = false;
@@ -167,10 +168,10 @@ namespace ConsoleFFT {
 
                 h1 = (int)(consoleHeight * 0.8);
                 h2 = (int)(consoleHeight * 0.3);
-                conBuffer = new byte[consoleWidth * consoleHeight];
+                conBuffer = new char[consoleWidth * consoleHeight];
             }
 
-            conBuffer = conBuffer.Select(i => (byte)32).ToArray();
+            conBuffer = conBuffer.Select(i => '\u0020').ToArray();
 
             Console.SetCursorPosition(0, 0);
         }
@@ -180,7 +181,7 @@ namespace ConsoleFFT {
             int newDivX;
             (int X, int Y) lastPL = (0, 0);
             int lastW = FFT2Pts(fftSize2 - 1, consoleWidth, consoleHeight, fftSize).Width;
-            byte bc = c[0];
+            char bc = c[0];
             for(int x = 0; x < fftSize2; x++) {
                 (int Width, int Height) s = FFT2Pts(x, consoleWidth, consoleHeight, fftSize, scaleFFT / 100.0);
                 newDivX = x / fftSize2 * (consoleWidth - lastW) + s.Width;
@@ -227,7 +228,7 @@ namespace ConsoleFFT {
             int ch3 = h / 4;
             int ch = h - 2;
             int l = fftWavDstBufL.Length;
-            byte bc = c[0];
+            char bc = c[0];
             double f = short.MaxValue / (scaleWav * 40000.0);
             int x;
             int y;
@@ -333,7 +334,7 @@ namespace ConsoleFFT {
                 Console.WriteLine(" 0: Default Device");
 
                 for(int i = 0; i < devices.Count; i++)
-                    Console.WriteLine($"{i + 1, 2}: {devices[i]} {(devices[i] == defaultDevice ? " [*]" : "")}");
+                    Console.WriteLine($"{i + 1,2}: {devices[i]} {(devices[i] == defaultDevice ? " [*]" : "")}");
             } else
                 Console.WriteLine("No capture/recoding devices found");
         }
@@ -353,8 +354,9 @@ namespace ConsoleFFT {
                     if(str[k] == '\n') {
                         x = 0;
                         y++;
-                    } else
-                        conBuffer[y * consoleWidth + x++] = (byte)str[k];
+                    } else {
+                        conBuffer[y * consoleWidth + x++] = str[k];
+                    }
                     k++;
                 }
                 showHelpDelay--;

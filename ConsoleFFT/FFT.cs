@@ -1,8 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 /*
 vb.net and c# implementations by Xavier Flix
@@ -164,8 +161,9 @@ namespace FFTLib {
         }
 
         private const double PI2 = 2.0 * Math.PI;
-        static int[] rBits;
-        static int lastFFTSize;
+        private static int[] rBits;
+        private static int lastFFTSize;
+        private static ComplexDouble initialFFTAngle = new ComplexDouble(1);
 
         private static int NumberOfBitsNeeded(int powerOfTwo) {
             for(int i = 0; i <= 32; i++) {
@@ -192,7 +190,7 @@ namespace FFTLib {
         }
 
         public static void FourierTransform(int fftSize,
-                                        double[] waveInL, ref ComplexDouble[] fftOutL,
+                                        double[] waveIn, ComplexDouble[] fftOut,
                                         bool doInverse) {
             int numBits;
             int k;
@@ -201,12 +199,11 @@ namespace FFTLib {
             double alpha;
             double beta;
             ComplexDouble tmp = new ComplexDouble();
-            ComplexDouble initialAngle = new ComplexDouble(1);
             ComplexDouble angle;
 
             int blockSize = 2;
             int blockEnd = 1;
-            double inverter = (doInverse ? -1.0 : 1.0);
+            int inverter = doInverse ? -1 : 1;
 
             if(lastFFTSize != fftSize) {
                 lastFFTSize = fftSize;
@@ -216,11 +213,11 @@ namespace FFTLib {
                 for(int i = 0; i < fftSize; i++) {
                     rBits[i] = ReverseBits(i, numBits);
 
-                    fftOutL[rBits[i]] = new ComplexDouble(waveInL[i]);
+                    fftOut[rBits[i]] = new ComplexDouble(waveIn[i]);
                 }
             } else {
                 for(int i = 0; i < fftSize; i++) {
-                    fftOutL[rBits[i]] = new ComplexDouble(waveInL[i]);
+                    fftOut[rBits[i]] = new ComplexDouble(waveIn[i]);
                 }
             }
 
@@ -230,15 +227,15 @@ namespace FFTLib {
                 beta = Math.Sin(deltaAngle);
 
                 for(int i = 0; i < fftSize; i += blockSize) {
-                    angle = initialAngle;
+                    angle = initialFFTAngle;
 
                     for(int j = i; j < blockEnd + i; j++) {
                         k = j + blockEnd;
 
-                        tmp.R = angle.R * fftOutL[k].R - angle.I * fftOutL[k].I;
-                        tmp.I = angle.I * fftOutL[k].R + angle.R * fftOutL[k].I;
-                        fftOutL[k] = fftOutL[j] - tmp;
-                        fftOutL[j] += tmp;
+                        tmp.R = angle.R * fftOut[k].R - angle.I * fftOut[k].I;
+                        tmp.I = angle.I * fftOut[k].R + angle.R * fftOut[k].I;
+                        fftOut[k] = fftOut[j] - tmp;
+                        fftOut[j] += tmp;
 
                         angle -= new ComplexDouble(alpha * angle.R + beta * angle.I,
                                                    alpha * angle.I - beta * angle.R);
@@ -249,11 +246,17 @@ namespace FFTLib {
                 blockEnd = blockSize;
                 blockSize *= 2;
             } while(blockSize <= fftSize);
+
+            if(doInverse) {
+                for(int i = 0; i < fftSize; i++) {
+                    fftOut[i].R /= fftSize;
+                }
+            }
         }
 
         public static void FourierTransform(int fftSize,
-                                        double[] waveInL, ref ComplexDouble[] fftOutL,
-                                        double[] waveInR, ref ComplexDouble[] fftOutR,
+                                        double[] waveInL, ComplexDouble[] fftOutL,
+                                        double[] waveInR, ComplexDouble[] fftOutR,
                                         bool doInverse) {
             int numBits;
             int k;
@@ -262,12 +265,11 @@ namespace FFTLib {
             double alpha;
             double beta;
             ComplexDouble tmp = new ComplexDouble();
-            ComplexDouble initialAngle = new ComplexDouble(1);
             ComplexDouble angle;
 
             int blockSize = 2;
             int blockEnd = 1;
-            double inverter = (doInverse ? -1.0 : 1.0);
+            int inverter = doInverse ? -1 : 1;
 
             if(lastFFTSize != fftSize) {
                 lastFFTSize = fftSize;
@@ -293,7 +295,7 @@ namespace FFTLib {
                 beta = Math.Sin(deltaAngle);
 
                 for(int i = 0; i < fftSize; i += blockSize) {
-                    angle = initialAngle;
+                    angle = initialFFTAngle;
 
                     for(int j = i; j < blockEnd + i; j++) {
                         k = j + blockEnd;
@@ -317,6 +319,13 @@ namespace FFTLib {
                 blockEnd = blockSize;
                 blockSize *= 2;
             } while(blockSize <= fftSize);
+
+            if(doInverse) {
+                for(int i = 0; i < fftSize; i++) {
+                    fftOutL[i].R /= fftSize;
+                    fftOutR[i].R /= fftSize;
+                }
+            }
         }
 
         public static double ApplyWindow(int i, FFTSizeConstants windowSize, FFTWindowConstants windowType) {
@@ -334,7 +343,6 @@ namespace FFTLib {
                 case FFTWindowConstants.Welch:
                     return 1.0 - (i - 0.5 * (w - 1)) / (0.5 * Math.Pow((w + 1), 2));
                 case FFTWindowConstants.Gaussian:
-                    //return Math.E ^ (-6.25 * PI * i ^ 2 / w ^ 2)
                     return Math.Pow(Math.E, (-6.25 * Math.PI * i * i / (w * w)));
                 case FFTWindowConstants.Blackman:
                     return 0.42 - 0.5 * Math.Cos(PI2 * i / w) + 0.08 * Math.Cos(2 * PI2 * i / w);
@@ -343,7 +351,6 @@ namespace FFTLib {
                 case FFTWindowConstants.Bartlett:
                     return 1.0 - Math.Abs(i) / w;
                 case FFTWindowConstants.Connes:
-                    //return (1.0 - i ^ 2 / w ^ 2) ^ 2
                     return Math.Pow((1.0 - i * i / (w * w)), 2);
                 case FFTWindowConstants.KaiserBessel:
                     if(i >= 0 && i <= w / 2) {
@@ -392,17 +399,15 @@ namespace FFTLib {
 
         private static double Bessel(double x) {
             double r = 1.0;
-            for(int l = 0; l < 2; lastFFTSize++) {
-                r += Math.Pow((Math.Pow(x / 2, 2 * l)) / (Fact(l)), 2);
+            for(uint l = 0; l < 2; lastFFTSize++) {
+                r += Math.Pow(Math.Pow(x / 2, 2 * l) / Fact(l), 2);
             }
             return r;
         }
 
-        private static int Fact(int x) {
-            int n = 1;
-            for(int i = 2; i <= x; i++) {
-                n *= i;
-            }
+        private static ulong Fact(ulong x) {
+            ulong n = 1;
+            for(ulong i = 2; i <= x; i++) n *= i;
             return n;
         }
     }
