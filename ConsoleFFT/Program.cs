@@ -63,7 +63,7 @@ namespace ConsoleFFT {
                 return;
             }
 
-            if(string.IsNullOrEmpty(deviceName)) ParseCommandline(new string[1] { "-device=0" }); // Set default capture device
+            if(string.IsNullOrEmpty(deviceName)) ParseCommandline(new string[1] { "--device=0" }); // Set default capture device
 
             bufferStride = BlittableValueType.StrideOf(buffer);
 
@@ -284,8 +284,8 @@ namespace ConsoleFFT {
                     param = args[i];
                 }
 
-                if(param.StartsWith("-"))
-                    param = param.Substring(1);
+                if(param.StartsWith("--"))
+                    param = param[2..];
                 else
                     throw new ArgumentException("Invalid argument", param);
 
@@ -391,14 +391,14 @@ namespace ConsoleFFT {
 
         private static void PrintDocumentation() {
             Console.WriteLine("Parameters:\r\n");
-            Console.WriteLine("-list: List available audio capturing devices");
-            Console.WriteLine("-device=n: Set capture to devices by its index. Setting n=0 will select the default device.");
-            Console.WriteLine($"-frequency=n: Set the sampling rate frequency. By default, set to {samplingRate:N0} KHz");
-            Console.WriteLine($"-bits=n: Set the sampling bit rate. Valid values are 8 or 16. By default, set to {samplingFormat.ToString().Replace("Mono", "")} bits");
-            Console.WriteLine($"-fft=n: Set the size of Fourier transform. By default, set to {fftSize:N0} bands");
-            Console.WriteLine($"-scaleFFT=n: Set the FFT graph scale. By default, set to {scaleFFT:.################}"); // https://stackoverflow.com/questions/14964737/double-tostring-no-scientific-notation
-            Console.WriteLine($"-scaleWav=n: Set the WaveForm graph scale. By default, set to {scaleWav:.################}");
-            Console.WriteLine("-help: This printout");
+            Console.WriteLine("--list: List available audio capturing devices");
+            Console.WriteLine("--device=n: Set capture to devices by its index. Setting n=0 will select the default device.");
+            Console.WriteLine($"--frequency=n: Set the sampling rate frequency. By default, set to {samplingRate:N0} KHz");
+            Console.WriteLine($"--bits=n: Set the sampling bit rate. Valid values are 8 or 16. By default, set to {samplingFormat.ToString().Replace("Mono", "")} bits");
+            Console.WriteLine($"--fft=n: Set the size of Fourier transform. By default, set to {fftSize:N0} bands");
+            Console.WriteLine($"--scaleFFT=n: Set the FFT graph scale. By default, set to {scaleFFT:.################}"); // https://stackoverflow.com/questions/14964737/double-tostring-no-scientific-notation
+            Console.WriteLine($"--scaleWav=n: Set the WaveForm graph scale. By default, set to {scaleWav:.################}");
+            Console.WriteLine("--help: This printout");
 
             Console.WriteLine();
             Console.WriteLine("All parameters are optional");
