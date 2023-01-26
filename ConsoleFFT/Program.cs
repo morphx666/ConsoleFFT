@@ -3,7 +3,6 @@ using OpenTK.Audio.OpenAL;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -26,11 +25,12 @@ namespace ConsoleFFT {
         private static int fftSize = 1024;
         private static ALFormat samplingFormat = ALFormat.Mono16;
         private static double scaleFFT = 0.01;
-        private static double scaleWav = 0.001;
+        private static double scaleWav = 0.0005;
 
         private static ALCaptureDevice audioCapture;
 
         private static short[] buffer = new short[512];
+        private static int bufferStride;
         private static char[] conBuffer;
         private static int h1;
         private static int h2;
@@ -38,7 +38,6 @@ namespace ConsoleFFT {
 
         private const byte SampleToByte = 2;
 
-        private static readonly bool isWindows = Environment.OSVersion.Platform == PlatformID.Win32NT;
         private static StreamWriter stdout;
 
         private static int consoleWidth = 0;
@@ -48,6 +47,11 @@ namespace ConsoleFFT {
         private static int showHelpDelay = helpDelay;
 
         private static void Main(string[] args) {
+            if(OperatingSystem.IsLinux()) {
+                scaleFFT /= 2500;
+                scaleWav /= 20;
+            }
+
             PrintHeader();
 
             try {
@@ -61,13 +65,15 @@ namespace ConsoleFFT {
 
             if(string.IsNullOrEmpty(deviceName)) ParseCommandline(new string[1] { "-device=0" }); // Set default capture device
 
+            bufferStride = BlittableValueType.StrideOf(buffer);
+
             InitFFT();
             StartMonitoring();
         }
 
         private static void StartMonitoring() {
             double bufferLengthMs = 15;
-            int bufferLengthSamples = (int)(bufferLengthMs * samplingRate * 0.002 / BlittableValueType.StrideOf(buffer));
+            int bufferLengthSamples = (int)(bufferLengthMs * samplingRate * 0.002 / bufferStride);
 
             stdout = new StreamWriter(Console.OpenStandardOutput());
 
@@ -95,7 +101,7 @@ namespace ConsoleFFT {
                             break;
                     }
                     PrintHelp();
-                    stdout.Write(conBuffer, 0, conBuffer.Length - (isWindows ? 1 : 0));
+                    stdout.Write(conBuffer, 0, conBuffer.Length - (OperatingSystem.IsWindows() ? 1 : 0));
                     stdout.Flush();
                 }
             });
@@ -152,6 +158,9 @@ namespace ConsoleFFT {
                         break;
                 }
             }
+
+            ALC.CaptureCloseDevice(audioCapture);
+
             Console.Clear();
             Console.CursorVisible = true;
         }
@@ -163,15 +172,14 @@ namespace ConsoleFFT {
                 consoleWidth = Console.WindowWidth;
                 consoleHeight = Console.WindowHeight;
                 Console.CursorVisible = false;
-                if(isWindows) Console.BufferHeight = consoleHeight;
+                if(OperatingSystem.IsWindows()) Console.BufferHeight = consoleHeight;
 
                 h1 = (int)(consoleHeight * 0.8);
                 h2 = (int)(consoleHeight * 0.3);
                 conBuffer = new char[consoleWidth * consoleHeight];
             }
 
-            conBuffer = conBuffer.Select(i => '\u0020').ToArray();
-
+            Array.Fill(conBuffer, '\u0020');
             Console.SetCursorPosition(0, 0);
         }
 
@@ -235,7 +243,7 @@ namespace ConsoleFFT {
                 x = (int)((double)i / l * consoleWidth);
                 y = (ushort)(fftWavDstBufL[i] / f * ch2 + ch2);
 
-                for(double p = 0; p < 1; p += 0.3) {
+                for(double p = 0; p < 1; p += 0.25) {
                     int tx = Lerp(lx, x, p);
                     int ty = Lerp(ly, y, p);
 
@@ -353,8 +361,8 @@ namespace ConsoleFFT {
 
         private static void PrintHelp() {
             if(showHelpDelay > 0) {
-                string str = $"[+][-]  ScaleFFT: {scaleFFT:F6}\n" +
-                             $"[+][-]  ScaleWav: {scaleWav:F6}\n" +
+                string str = $"[+][-]  ScaleFFT: {scaleFFT:F8}\n" +
+                             $"[+][-]  ScaleWav: {scaleWav:F8}\n" +
                              $"[C]     Style:    {renderCharMode}\n" +
                              $"[SPACE] Mode:     {renderMode}\n" +
                              $"[ESC]   Exit";

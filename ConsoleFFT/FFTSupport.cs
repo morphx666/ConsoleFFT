@@ -34,19 +34,23 @@ namespace ConsoleFFT {
         }
 
         private static void GetSamples() {
-            int availableSamples =ALC.GetAvailableSamples(audioCapture);
-            if(availableSamples * SampleToByte > buffer.Length * BlittableValueType.StrideOf(buffer)) {
-                buffer = new short[MathHelper.NextPowerOfTwo(
-                    (int)(availableSamples * SampleToByte / (double)BlittableValueType.StrideOf(buffer) + 0.5))];
-            }
+            int availableSamples = ALC.GetAvailableSamples(audioCapture);
 
             if(availableSamples > 0) {
+                // FIXME: Is this an OpenTK bug?
+                if(OperatingSystem.IsLinux()) availableSamples /= 4;
+
+                if(availableSamples * SampleToByte > buffer.Length * bufferStride) {
+                    buffer = new short[MathHelper.NextPowerOfTwo(
+                        (int)(availableSamples * SampleToByte / bufferStride + 0.5))];
+                }
+
                 ALC.CaptureSamples(audioCapture, buffer, availableSamples);
-                FillFFTBuffer(availableSamples);
+                FillBuffer(availableSamples);
             }
         }
 
-        private static void FillFFTBuffer(int availableSamples) {
+        private static void FillBuffer(int availableSamples) {
             do {
                 while(true) {
                     if(ffWavSrcBufIndex >= availableSamples) {
