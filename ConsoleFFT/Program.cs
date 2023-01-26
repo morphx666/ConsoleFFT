@@ -1,8 +1,6 @@
 ﻿using OpenTK;
-using OpenTK.Audio;
 using OpenTK.Audio.OpenAL;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -30,7 +28,7 @@ namespace ConsoleFFT {
         private static double scaleFFT = 0.01;
         private static double scaleWav = 0.001;
 
-        private static AudioCapture audioCapture;
+        private static ALCaptureDevice audioCapture;
 
         private static short[] buffer = new short[512];
         private static char[] conBuffer;
@@ -73,8 +71,8 @@ namespace ConsoleFFT {
 
             stdout = new StreamWriter(Console.OpenStandardOutput());
 
-            audioCapture = new AudioCapture(deviceName, samplingRate, samplingFormat, bufferLengthSamples);
-            audioCapture.Start();
+            audioCapture = ALC.CaptureOpenDevice(deviceName, samplingRate, samplingFormat, bufferLengthSamples);
+            ALC.CaptureStart(audioCapture);
 
             int delay = (int)(bufferLengthMs / 2 + 0.5);
             Task.Run(() => {
@@ -290,8 +288,8 @@ namespace ConsoleFFT {
                     case "device": // Set capture device
                         if(!int.TryParse(value, out int deviceIndex)) throw new ArgumentException("Invalid argument value", value);
 
-                        string defaultDevice = AudioCapture.DefaultDevice;
-                        IList<string> devices = AudioCapture.AvailableDevices;
+                        string defaultDevice = ALC.GetString(ALDevice.Null, AlcGetString.CaptureDefaultDeviceSpecifier);
+                        List<string> devices = ALC.GetString(AlcGetStringList.CaptureDeviceSpecifier);
                         if(devices.Count > 0) {
                             for(int j = 0; j < devices.Count; j++) {
                                 if(deviceIndex == 0 && devices[j] == defaultDevice) {
@@ -342,13 +340,13 @@ namespace ConsoleFFT {
         private static void ListAvailableCaptureDevices() {
             Console.WriteLine("Capture Devices:\r\n");
 
-            string defaultDevice = AudioCapture.DefaultDevice;
-            IList<string> devices = AudioCapture.AvailableDevices;
+            string defaultDevice = ALC.GetString(ALDevice.Null, AlcGetString.CaptureDefaultDeviceSpecifier);
+            List<string> devices = ALC.GetString(AlcGetStringList.CaptureDeviceSpecifier);
             if(devices.Count > 0) {
-                Console.WriteLine(" 0: Default Device");
+                Console.WriteLine("      0: Default Device");
 
                 for(int i = 0; i < devices.Count; i++)
-                    Console.WriteLine($"{i + 1,2}: {devices[i]} {(devices[i] == defaultDevice ? " [*]" : "")}");
+                    Console.WriteLine($"{(devices[i] == defaultDevice ? " [*]" : "    ")} {i + 1,2}: {devices[i]}");
             } else
                 Console.WriteLine("No capture/recoding devices found");
         }

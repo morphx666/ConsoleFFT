@@ -1,4 +1,6 @@
 ﻿using OpenTK;
+using OpenTK.Audio.OpenAL;
+using OpenTK.Mathematics;
 using System;
 using static FFTLib.FFT;
 
@@ -32,14 +34,14 @@ namespace ConsoleFFT {
         }
 
         private static void GetSamples() {
-            int availableSamples = audioCapture.AvailableSamples;
+            int availableSamples =ALC.GetAvailableSamples(audioCapture);
             if(availableSamples * SampleToByte > buffer.Length * BlittableValueType.StrideOf(buffer)) {
                 buffer = new short[MathHelper.NextPowerOfTwo(
                     (int)(availableSamples * SampleToByte / (double)BlittableValueType.StrideOf(buffer) + 0.5))];
             }
 
             if(availableSamples > 0) {
-                audioCapture.ReadSamples(buffer, availableSamples);
+                ALC.CaptureSamples(audioCapture, buffer, availableSamples);
                 FillFFTBuffer(availableSamples);
             }
         }
