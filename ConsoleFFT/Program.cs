@@ -23,6 +23,7 @@ namespace ConsoleFFT {
         private static string deviceName = "";
         private static int samplingRate = 44100;
         private static int fftSize = 1024;
+        private static double bufferLengthMs = fftSize / 80.0;
         private static ALFormat samplingFormat = ALFormat.Mono16;
         private static double scaleFFT = 0.01;
         private static double scaleWav = 0.0005;
@@ -72,7 +73,6 @@ namespace ConsoleFFT {
         }
 
         private static void StartMonitoring() {
-            double bufferLengthMs = 15;
             int bufferLengthSamples = (int)(bufferLengthMs * samplingRate * 0.002 / bufferStride);
 
             stdout = new StreamWriter(Console.OpenStandardOutput());
@@ -230,18 +230,19 @@ namespace ConsoleFFT {
         }
 
         private static void RenderWaveform() {
-            int h = consoleHeight;
-            int ch2 = h / 2;
-            int ch3 = h / 4;
-            int ch = h - 2;
-            int l = fftWavDstBufL.Length;
+            int ch2 = consoleHeight / 2;
+            int ch3 = consoleHeight / 4;
+            int ch = consoleHeight - 2;
+            int l = wavDstBufL.Length;
+            double hl = (double)l / consoleWidth;
             char bc = c[0];
             double f = short.MaxValue / (scaleWav * 40000.0);
             int x, lx = 0;
             int y, ly = ch2;
             for(int i = 0; i < l; i++) {
-                x = (int)((double)i / l * consoleWidth);
-                y = (ushort)(fftWavDstBufL[i] / f * ch2 + ch2);
+                x = (int)((double)i / hl);
+                //y = (ushort)(wavDstBufL[i] / f * ch2 + ch2);
+                y = (ushort)(WAVAvg(i) / f * ch2 + ch2);
 
                 for(double p = 0; p < 1; p += 0.25) {
                     int tx = Lerp(lx, x, p);
@@ -251,9 +252,9 @@ namespace ConsoleFFT {
                         int index = ty * consoleWidth + tx;
                         switch(renderCharMode) {
                             case RenderCharModes.Multiple:
-                                if(ty < ch3 || ty > h - ch3)
+                                if(ty < ch3 || ty > consoleHeight - ch3)
                                     bc = c[2];
-                                else if(ty < ch2 - ch3+4 || ty > ch2 + ch3-4)
+                                else if(ty < ch2 - ch3 + 4 || ty > ch2 + ch3 - 4)
                                     bc = c[1];
                                 else
                                     bc = c[0];
@@ -267,7 +268,7 @@ namespace ConsoleFFT {
                 ly = y;
             }
         }
-        
+
         private static int Lerp(int start, int end, double percentage) {
             return (int)(start + percentage * (end - start));
         }

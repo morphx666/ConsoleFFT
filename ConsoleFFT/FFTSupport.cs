@@ -1,27 +1,32 @@
-﻿using OpenTK;
-using OpenTK.Audio.OpenAL;
+﻿using OpenTK.Audio.OpenAL;
 using OpenTK.Mathematics;
 using System;
 using static FFTLib.FFT;
 
 namespace ConsoleFFT {
     public static partial class Program {
-        private static double[] fftWavDstBufL;
+        private static double[] wavDstBufL;
+        private static double[][] wavHist;
         private static double[] fftWindowValues;
         private static double[][] fftHist;
         private static ComplexDouble[] fftBuffer;
-        private static int fftHistSize = 8;
+        private static int histSize = 8;
         private static int fftSize2;
         private static int fftWavDstIndex;
         private static int ffWavSrcBufIndex;
         private static double fftWindowSum;
 
         private static void InitFFT() {
-            fftSize2 = (int)fftSize / 2;
-            fftHist = new double[fftHistSize][];
-            fftWavDstBufL = new double[(int)fftSize];
+            fftSize2 = fftSize / 2;
+            fftHist = new double[histSize][];
 
-            for(int i = 0; i < fftHistSize; i++) fftHist[i] = new double[fftSize2];
+            wavDstBufL = new double[fftSize];
+            wavHist = new double[histSize][];
+
+            for(int i = 0; i < histSize; i++) {
+                fftHist[i] = new double[fftSize2];
+                wavHist[i] = new double[fftSize];
+            }
 
             fftBuffer = new ComplexDouble[fftSize];
             for(int i = 0; i < (int)fftSize; i++) fftBuffer[i] = new ComplexDouble();
@@ -62,32 +67,41 @@ namespace ConsoleFFT {
                         switch(renderMode) {
                             case RenderModes.FFT:
                                 RunFFT();
-                                break;
+                                goto ExitLoop;
                             case RenderModes.Waveform:
-                                //TODO: Implement Waveform averaging
-                                break;
+                                RunWAV();
+                                goto ExitLoop;
                         }
                         break;
                     }
 
-                    fftWavDstBufL[fftWavDstIndex] = buffer[ffWavSrcBufIndex] *
-                        (renderMode == RenderModes.FFT ?
-                            fftWindowValues[fftWavDstIndex] : 1.0);
+                    wavDstBufL[fftWavDstIndex] = buffer[ffWavSrcBufIndex] *
+                        (renderMode == RenderModes.FFT ? fftWindowValues[fftWavDstIndex] : 1.0);
 
                     fftWavDstIndex++;
                     ffWavSrcBufIndex++;
                 }
             } while(fftWavDstIndex != 0 && ffWavSrcBufIndex != 0);
+
+        ExitLoop:;
         }
 
         private static void RunFFT() {
-            FourierTransform(fftSize, fftWavDstBufL, fftBuffer, false);
+            FourierTransform(fftSize, wavDstBufL, fftBuffer, false);
 
             // Shift history back one spot
-            for(int i = 0; i < fftHistSize - 1; i++) Array.Copy(fftHist[i + 1], 0, fftHist[i], 0, fftSize2);
+            for(int i = 0; i < histSize - 1; i++) Array.Copy(fftHist[i + 1], 0, fftHist[i], 0, fftSize2);
 
-            // Update the last spot with the new data from the FFT using the Power() function.
-            for(int i = 0; i < fftSize2; i++) fftHist[fftHistSize - 1][i] = fftBuffer[i].Power();
+            // Update the last spot with the new data from the FFT using the Power() function
+            for(int i = 0; i < fftSize2; i++) fftHist[histSize - 1][i] = fftBuffer[i].Power();
+        }
+
+        private static void RunWAV() {
+            // Shift history back one spot
+            for(int i = 0; i < histSize - 1; i++) Array.Copy(wavHist[i + 1], 0, wavHist[i], 0, fftSize);
+
+            // Update the last spot with the new data from the WAV buffer
+            for(int i = 0; i < fftSize; i++) wavHist[histSize - 1][i] = wavDstBufL[i];
         }
 
         private static (int Width, int Height) FFT2Pts(int x, int w, int h, int fftSize, double scale = 1.0) {
@@ -100,10 +114,18 @@ namespace ConsoleFFT {
 
         private static double FFTAvg(int x) {
             double v = 0;
-            for(int i = 0; i < fftHistSize; i++) {
+            for(int i = 0; i < histSize; i++) {
                 v += fftHist[i][x];
             }
-            return v / fftHistSize;
+            return v / histSize;
+        }
+
+        private static double WAVAvg(int x) {
+            double v = 0;
+            for(int i = 0; i < histSize; i++) {
+                v += wavHist[i][x];
+            }
+            return v / histSize;
         }
     }
 }
