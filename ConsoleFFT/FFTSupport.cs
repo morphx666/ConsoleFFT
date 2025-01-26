@@ -29,7 +29,7 @@ namespace ConsoleFFT {
             }
 
             fftBuffer = new ComplexDouble[fftSize];
-            for(int i = 0; i < (int)fftSize; i++) fftBuffer[i] = new ComplexDouble();
+            for(int i = 0; i < fftSize; i++) fftBuffer[i] = new ComplexDouble();
 
             fftWindowValues = GetWindowValues((FFTSizeConstants)fftSize, FFTWindowConstants.Hanning);
             fftWindowSum = GetWindowSum((FFTSizeConstants)fftSize, FFTWindowConstants.Hanning);

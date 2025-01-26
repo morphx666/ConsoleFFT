@@ -316,16 +316,11 @@ namespace ConsoleFFT {
                         break;
                     case "bits": // Set bits per sample
                         if(!int.TryParse(value, out int b)) throw new ArgumentException("Invalid argument value", value);
-                        switch(b) {
-                            case 8:
-                                samplingFormat = ALFormat.Mono8;
-                                break;
-                            case 16:
-                                samplingFormat = ALFormat.Mono16;
-                                break;
-                            default:
-                                throw new ArgumentException("Invalid argument value", value);
-                        }
+                        samplingFormat = b switch {
+                            8 => ALFormat.Mono8,
+                            16 => ALFormat.Mono16,
+                            _ => throw new ArgumentException("Invalid argument value", value),
+                        };
                         break;
                     case "fft": // Set FFT size
                         if(!int.TryParse(value, out fftSize)) throw new ArgumentException("Invalid argument value", value);
