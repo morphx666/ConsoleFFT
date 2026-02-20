@@ -64,7 +64,7 @@ namespace ConsoleFFT {
                 return;
             }
 
-            if(string.IsNullOrEmpty(deviceName)) ParseCommandline(new string[1] { "--device=0" }); // Set default capture device
+            if(string.IsNullOrEmpty(deviceName)) ParseCommandline(["--device=0"]); // Set default capture device
 
             bufferStride = BlittableValueType.StrideOf(buffer);
 

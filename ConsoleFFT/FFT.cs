@@ -152,7 +152,7 @@ namespace FFTLib {
             }
 
             public static ComplexDouble[] FromDouble(double[] values) {
-                return (from d in values select ComplexDouble.FromDouble(d)).ToArray();
+                return [.. from d in values select FromDouble(d)];
             }
 
             public override string ToString() {
@@ -163,11 +163,11 @@ namespace FFTLib {
         private const double PI2 = 2.0 * Math.PI;
         private static int[] rBits;
         private static int lastFFTSize;
-        private static ComplexDouble initialFFTAngle = new ComplexDouble(1);
+        private static readonly ComplexDouble initialFFTAngle = new(1);
 
         private static int NumberOfBitsNeeded(int powerOfTwo) {
             for(int i = 0; i <= 32; i++) {
-                if((powerOfTwo & (int)(Math.Pow(2, i))) != 0) return i;
+                if((powerOfTwo & (int)Math.Pow(2, i)) != 0) return i;
             }
             return -1;
         }
@@ -198,7 +198,7 @@ namespace FFTLib {
             double deltaAngle;
             double alpha;
             double beta;
-            ComplexDouble tmp = new ComplexDouble();
+            ComplexDouble tmp = new();
             ComplexDouble angle;
 
             int blockSize = 2;
@@ -264,7 +264,7 @@ namespace FFTLib {
             double deltaAngle;
             double alpha;
             double beta;
-            ComplexDouble tmp = new ComplexDouble();
+            ComplexDouble tmp = new();
             ComplexDouble angle;
 
             int blockSize = 2;
@@ -335,15 +335,15 @@ namespace FFTLib {
                 case FFTWindowConstants.None:
                     return 1.0;
                 case FFTWindowConstants.Triangle:
-                    return 1.0 - Math.Abs(1.0 - ((2 * i) / w));
+                    return 1.0 - Math.Abs(1.0 - (2 * i / w));
                 case FFTWindowConstants.Hanning:
-                    return (0.5 * (1.0 - Math.Cos(PI2 * i / w)));
+                    return 0.5 * (1.0 - Math.Cos(PI2 * i / w));
                 case FFTWindowConstants.Hamming:
                     return 0.54 - 0.46 * Math.Cos(PI2 * i / w);
                 case FFTWindowConstants.Welch:
                     return 1.0 - (i - 0.5 * (w - 1)) / (0.5 * Math.Pow((w + 1), 2));
                 case FFTWindowConstants.Gaussian:
-                    return Math.Pow(Math.E, (-6.25 * Math.PI * i * i / (w * w)));
+                    return Math.Pow(Math.E, -6.25 * Math.PI * i * i / (w * w));
                 case FFTWindowConstants.Blackman:
                     return 0.42 - 0.5 * Math.Cos(PI2 * i / w) + 0.08 * Math.Cos(2 * PI2 * i / w);
                 case FFTWindowConstants.Parzen:
@@ -351,10 +351,10 @@ namespace FFTLib {
                 case FFTWindowConstants.Bartlett:
                     return 1.0 - Math.Abs(i) / w;
                 case FFTWindowConstants.Connes:
-                    return Math.Pow((1.0 - i * i / (w * w)), 2);
+                    return Math.Pow(1.0 - i * i / (w * w), 2);
                 case FFTWindowConstants.KaiserBessel:
                     if(i >= 0 && i <= w / 2) {
-                        return Bessel((w / 2) * (Math.Pow(Math.Sqrt(1 - 2 * i / w), 2))) / Bessel(w / 2);
+                        return Bessel((w / 2) * Math.Pow(Math.Sqrt(1 - 2 * i / w), 2)) / Bessel(w / 2);
                     } else {
                         return 0.0;
                     }

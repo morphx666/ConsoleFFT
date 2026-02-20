@@ -1,11 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<OutputType>Exe</OutputType>
-		<TargetFramework>net9.0</TargetFramework>
+		<TargetFramework>net10.0</TargetFramework>
 		<RootNamespace>ConsoleFFT</RootNamespace>
 		<AssemblyName>ConsoleFFT</AssemblyName>
-		<AssemblyVersion>2024.3.26.122</AssemblyVersion>
-		<FileVersion>2024.3.26.122</FileVersion>
+		<AssemblyVersion>2026.2.19.146</AssemblyVersion>
+		<FileVersion>2026.2.19.146</FileVersion>
 		<Company>xFX JumpStart</Company>
 		<Authors>Xavier Flix</Authors>
 		<Description>Console based FFT and Waveform renderer</Description>

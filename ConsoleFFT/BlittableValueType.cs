@@ -45,7 +45,7 @@ namespace OpenTK {
                 // Does this support generic types? On Mono 2.4.3 it does
                 // On .Net it doesn't.
                 // http://msdn.microsoft.com/en-us/library/5s4920fa.aspx
-                Stride = Marshal.SizeOf(typeof(T));
+                Stride = Marshal.SizeOf<T>();
             }
         }
 
