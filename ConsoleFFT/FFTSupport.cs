@@ -10,7 +10,7 @@ namespace ConsoleFFT {
         private static double[] fftWindowValues;
         private static double[][] fftHist;
         private static ComplexDouble[] fftBuffer;
-        private static int histSize = 8;
+        private static int histSize = 6;
         private static int fftSize2;
         private static int fftWavDstIndex;
         private static int ffWavSrcBufIndex;
@@ -25,7 +25,7 @@ namespace ConsoleFFT {
 
             for(int i = 0; i < histSize; i++) {
                 fftHist[i] = new double[fftSize2];
-                wavHist[i] = new double[fftSize];
+                wavHist[i] = new double[fftSize2];
             }
 
             fftBuffer = new ComplexDouble[fftSize];
@@ -62,7 +62,7 @@ namespace ConsoleFFT {
                         if(fftWavDstIndex >= fftSize) fftWavDstIndex = 0;
                         ffWavSrcBufIndex = 0;
                         break;
-                    } else if(fftWavDstIndex >= fftSize) {
+                    } else if(fftWavDstIndex >= wavDstBufL.Length) {
                         fftWavDstIndex = 0;
                         switch(renderMode) {
                             case RenderModes.FFT:
@@ -90,18 +90,18 @@ namespace ConsoleFFT {
             FourierTransform(fftSize, wavDstBufL, fftBuffer, false);
 
             // Shift history back one spot
-            for(int i = 0; i < histSize - 1; i++) Array.Copy(fftHist[i + 1], 0, fftHist[i], 0, fftSize2);
+            for(int i = 0; i < histSize - 1; i++) Array.Copy(fftHist[i + 1], 0, fftHist[i], 0, fftHist[0].Length);
 
             // Update the last spot with the new data from the FFT using the Power() function
-            for(int i = 0; i < fftSize2; i++) fftHist[histSize - 1][i] = fftBuffer[i].Power();
+            for(int i = 0; i < fftHist[0].Length; i++) fftHist[histSize - 1][i] = fftBuffer[i].Power();
         }
 
         private static void RunWAV() {
             // Shift history back one spot
-            for(int i = 0; i < histSize - 1; i++) Array.Copy(wavHist[i + 1], 0, wavHist[i], 0, fftSize);
+            for(int i = 0; i < histSize - 1; i++) Array.Copy(wavHist[i + 1], 0, wavHist[i], 0, wavHist[0].Length);
 
             // Update the last spot with the new data from the WAV buffer
-            for(int i = 0; i < fftSize; i++) wavHist[histSize - 1][i] = wavDstBufL[i];
+            for(int i = 0; i < fftHist[0].Length; i++) wavHist[histSize - 1][i] = wavDstBufL[i];
         }
 
         private static (int Width, int Height) FFT2Pts(int x, int w, int h, int fftSize, double scale = 1.0) {

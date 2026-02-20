@@ -23,9 +23,9 @@ namespace ConsoleFFT {
         private static string deviceName = "";
         private static int samplingRate = 44100;
         private static int fftSize = 1024;
-        private static double bufferLengthMs = fftSize / 80.0;
+        private static double bufferLengthMs = 16;
         private static ALFormat samplingFormat = ALFormat.Mono16;
-        private static double scaleFFT = 0.01;
+        private static double scaleFFT = 0.004;
         private static double scaleWav = 0.0005;
 
         private static ALCaptureDevice audioCapture;
@@ -109,6 +109,7 @@ namespace ConsoleFFT {
             bool doLoop = true;
             while(doLoop) {
                 switch(Console.ReadKey(true).Key) {
+                //switch(ConsoleKey.OemComma) { // For debugging within VS Code
                     case ConsoleKey.Escape:
                         doLoop = false;
                         break;
@@ -233,7 +234,7 @@ namespace ConsoleFFT {
             int ch2 = consoleHeight / 2;
             int ch3 = consoleHeight / 4;
             int ch = consoleHeight - 2;
-            int l = wavDstBufL.Length;
+            int l = wavHist[0].Length; // wavDstBufL.Length;
             double hl = (double)l / consoleWidth;
             char bc = c[0];
             double f = short.MaxValue / (scaleWav * 40000.0);
