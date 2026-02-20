@@ -67,10 +67,10 @@ namespace ConsoleFFT {
                         switch(renderMode) {
                             case RenderModes.FFT:
                                 RunFFT();
-                                goto ExitLoop;
+                                return;
                             case RenderModes.Waveform:
                                 RunWAV();
-                                goto ExitLoop;
+                                return;
                         }
                         break;
                     }
@@ -82,8 +82,6 @@ namespace ConsoleFFT {
                     ffWavSrcBufIndex++;
                 }
             } while(fftWavDstIndex != 0 && ffWavSrcBufIndex != 0);
-
-        ExitLoop:;
         }
 
         private static void RunFFT() {

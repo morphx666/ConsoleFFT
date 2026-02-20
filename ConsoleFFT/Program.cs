@@ -3,7 +3,6 @@ using OpenTK.Audio.OpenAL;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace ConsoleFFT {
@@ -23,7 +22,7 @@ namespace ConsoleFFT {
         private static string deviceName = "";
         private static int samplingRate = 44100;
         private static int fftSize = 1024;
-        private static double bufferLengthMs = 16;
+        private static double bufferLengthMs = 8;
         private static ALFormat samplingFormat = ALFormat.Mono16;
         private static double scaleFFT = 0.004;
         private static double scaleWav = 0.0005;
@@ -73,24 +72,23 @@ namespace ConsoleFFT {
         }
 
         private static void StartMonitoring() {
-            int bufferLengthSamples = (int)(bufferLengthMs * samplingRate * 0.002 / bufferStride);
-
             stdout = new StreamWriter(Console.OpenStandardOutput());
 
+            int bufferLengthSamples = (int)((1.0 / bufferLengthMs * samplingRate) / bufferStride);
             audioCapture = ALC.CaptureOpenDevice(deviceName, samplingRate, samplingFormat, bufferLengthSamples);
             ALC.CaptureStart(audioCapture);
 
             int delay = (int)(bufferLengthMs / 2 + 0.5);
-            Task.Run(() => {
+            Task.Run(async () => {
                 while(true) {
-                    Thread.Sleep(delay);
+                    await Task.Delay(delay);
                     GetSamples();
                 }
             });
 
-            Task.Run(() => {
+            Task.Run(async () => {
                 while(true) {
-                    Thread.Sleep(delay);
+                    await Task.Delay(delay);
                     InitRenderer();
                     switch(renderMode) {
                         case RenderModes.FFT:
@@ -109,7 +107,7 @@ namespace ConsoleFFT {
             bool doLoop = true;
             while(doLoop) {
                 switch(Console.ReadKey(true).Key) {
-                //switch(ConsoleKey.OemComma) { // For debugging within VS Code
+                    //switch(ConsoleKey.OemComma) { // For debugging within VS Code
                     case ConsoleKey.Escape:
                         doLoop = false;
                         break;
@@ -388,14 +386,14 @@ namespace ConsoleFFT {
 
         private static void PrintDocumentation() {
             Console.WriteLine("Parameters:\r\n");
-            Console.WriteLine("--list: List available audio capturing devices");
-            Console.WriteLine("--device=n: Set capture to devices by its index. Setting n=0 will select the default device.");
-            Console.WriteLine($"--frequency=n: Set the sampling rate frequency. By default, set to {samplingRate:N0} KHz");
-            Console.WriteLine($"--bits=n: Set the sampling bit rate. Valid values are 8 or 16. By default, set to {samplingFormat.ToString().Replace("Mono", "")} bits");
-            Console.WriteLine($"--fft=n: Set the size of Fourier transform. By default, set to {fftSize:N0} bands");
-            Console.WriteLine($"--scaleFFT=n: Set the FFT graph scale. By default, set to {scaleFFT:.################}"); // https://stackoverflow.com/questions/14964737/double-tostring-no-scientific-notation
-            Console.WriteLine($"--scaleWav=n: Set the WaveForm graph scale. By default, set to {scaleWav:.################}");
-            Console.WriteLine("--help: This printout");
+            Console.WriteLine($"--list        List available audio capturing devices");
+            Console.WriteLine($"--device=n    Set capture to devices by its index. Setting n=0 will select the default device.");
+            Console.WriteLine($"--frequency=n Set the sampling rate frequency. By default, set to {samplingRate:N0} KHz");
+            Console.WriteLine($"--bits=n      Set the sampling bit rate. Valid values are 8 or 16. By default, set to {samplingFormat.ToString().Replace("Mono", "")} bits");
+            Console.WriteLine($"--fft=n       Set the size of Fourier transform. By default, set to {fftSize:N0} bands");
+            Console.WriteLine($"--scaleFFT=n  Set the FFT graph scale. By default, set to {scaleFFT:.################}"); // https://stackoverflow.com/questions/14964737/double-tostring-no-scientific-notation
+            Console.WriteLine($"--scaleWav=n  Set the WaveForm graph scale. By default, set to {scaleWav:.################}");
+            Console.WriteLine($"--help        This printout");
 
             Console.WriteLine();
             Console.WriteLine("All parameters are optional");
