@@ -4,8 +4,8 @@
 		<TargetFramework>net10.0</TargetFramework>
 		<RootNamespace>ConsoleFFT</RootNamespace>
 		<AssemblyName>ConsoleFFT</AssemblyName>
-		<AssemblyVersion>2026.2.20.156</AssemblyVersion>
-		<FileVersion>2026.2.20.156</FileVersion>
+		<AssemblyVersion>2026.2.20.309</AssemblyVersion>
+		<FileVersion>2026.2.20.309</FileVersion>
 		<Company>xFX JumpStart</Company>
 		<Authors>Xavier Flix</Authors>
 		<Description>Console based FFT and Waveform renderer</Description>

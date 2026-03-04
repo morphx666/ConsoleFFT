@@ -1,8 +1,10 @@
 ﻿using OpenTK;
 using OpenTK.Audio.OpenAL;
+using OpenTK.Compute.OpenCL;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace ConsoleFFT {
@@ -12,12 +14,6 @@ namespace ConsoleFFT {
             Waveform = 1
         }
         private static RenderModes renderMode = RenderModes.FFT;
-
-        public enum RenderCharModes {
-            Simple = 0,
-            Multiple = 1
-        }
-        private static RenderCharModes renderCharMode = RenderCharModes.Simple;
 
         private static string deviceName = "";
         private static int samplingRate = 44100;
@@ -31,10 +27,10 @@ namespace ConsoleFFT {
 
         private static short[] buffer = new short[512];
         private static int bufferStride;
-        private static char[] conBuffer;
         private static int h1;
         private static int h2;
-        private static readonly char[] c = { '\u2588', '\u25a0', '\u00b7' }; // █ ■ ·
+        private static readonly char[] c = ['\u2588', '\u25a0', '\u00b7']; // █ ■ ·
+        private const string CSI = "\e["; // Control Sequence Introducer (ANSI escape code)
 
         private const byte SampleToByte = 2;
 
@@ -72,35 +68,39 @@ namespace ConsoleFFT {
         }
 
         private static void StartMonitoring() {
-            stdout = new StreamWriter(Console.OpenStandardOutput());
+            //stdout = new(Console.OpenStandardOutput(), Encoding.UTF8);
+            //Console.SetOut(stdout);
+            Console.CursorVisible = false;
 
             int bufferLengthSamples = (int)((1.0 / bufferLengthMs * samplingRate) / bufferStride);
             audioCapture = ALC.CaptureOpenDevice(deviceName, samplingRate, samplingFormat, bufferLengthSamples);
             ALC.CaptureStart(audioCapture);
 
-            int delay = (int)(bufferLengthMs / 2 + 0.5);
+            int delay = 30;
             Task.Run(async () => {
                 while(true) {
-                    await Task.Delay(delay);
+                    await Task.Delay(delay/2);
                     GetSamples();
                 }
             });
 
             Task.Run(async () => {
+                StringBuilder sb = new();
                 while(true) {
                     await Task.Delay(delay);
-                    InitRenderer();
+
+                    InitRenderer(sb);
                     switch(renderMode) {
                         case RenderModes.FFT:
-                            RenderFFT();
+                            RenderFFT(sb);
                             break;
                         case RenderModes.Waveform:
-                            RenderWaveform();
+                            RenderWaveform(sb);
                             break;
                     }
-                    PrintHelp();
-                    stdout.Write(conBuffer, 0, conBuffer.Length - (OperatingSystem.IsWindows() ? 1 : 0));
-                    stdout.Flush();
+                    PrintHelp(sb);
+
+                    Console.Write(sb.ToString());
                 }
             });
 
@@ -118,17 +118,6 @@ namespace ConsoleFFT {
                                 break;
                             case RenderModes.Waveform:
                                 renderMode = RenderModes.FFT;
-                                break;
-                        }
-                        showHelpDelay = helpDelay;
-                        break;
-                    case ConsoleKey.C:
-                        switch(renderCharMode) {
-                            case RenderCharModes.Simple:
-                                renderCharMode = RenderCharModes.Multiple;
-                                break;
-                            case RenderCharModes.Multiple:
-                                renderCharMode = RenderCharModes.Simple;
                                 break;
                         }
                         showHelpDelay = helpDelay;
@@ -158,31 +147,27 @@ namespace ConsoleFFT {
                 }
             }
 
+            ALC.CaptureStop(audioCapture);
             ALC.CaptureCloseDevice(audioCapture);
 
             Console.Clear();
             Console.CursorVisible = true;
         }
 
-        private static void InitRenderer() {
+        private static void InitRenderer(StringBuilder sb) {
             if(Console.WindowWidth != consoleWidth || Console.WindowHeight != consoleHeight) {
-                Console.Clear();
-                Console.OutputEncoding = System.Text.Encoding.UTF8; // chcp 65001
                 consoleWidth = Console.WindowWidth;
                 consoleHeight = Console.WindowHeight;
-                Console.CursorVisible = false;
-                if(OperatingSystem.IsWindows()) Console.BufferHeight = consoleHeight;
 
                 h1 = (int)(consoleHeight * 0.8);
                 h2 = (int)(consoleHeight * 0.3);
-                conBuffer = new char[consoleWidth * consoleHeight];
             }
 
-            Array.Fill(conBuffer, '\u0020');
-            Console.SetCursorPosition(0, 0);
+            sb.Clear();
+            sb.Append($"{CSI}1;1H{CSI}0J{CSI}0m");
         }
 
-        private static void RenderFFT() {
+        private static void RenderFFT(StringBuilder sb) {
             // Log X/Y ==============================================================
             int newDivX;
             (int X, int Y) lastPL = (0, 0);
@@ -192,23 +177,10 @@ namespace ConsoleFFT {
                 (int Width, int Height) s = FFT2Pts(x, consoleWidth, consoleHeight, fftSize, scaleFFT / 100.0);
                 newDivX = x / fftSize2 * (consoleWidth - lastW) + s.Width;
 
-                if(x > 0) {
-                    int v = Math.Min(consoleHeight, lastPL.Y);
-                    for(int xi = lastPL.X; xi < newDivX; xi++) {
-                        for(int yi = consoleHeight - v; yi < consoleHeight; yi++) {
-                            int index = yi * consoleWidth + xi;
-                            if(index < conBuffer.Length) {
-                                switch(renderCharMode) {
-                                    case RenderCharModes.Multiple:
-                                        if(yi > h1) bc = c[0];
-                                        else if(yi > h2) bc = c[1];
-                                        else bc = c[2];
-                                        break;
-                                }
-
-                                conBuffer[index] = bc;
-                            }
-                        }
+                int v = Math.Min(consoleHeight, lastPL.Y);
+                for(int xi = lastPL.X; xi < newDivX; xi++) {
+                    for(int yi = consoleHeight - v; yi < consoleHeight; yi++) {
+                        sb.Append($"{CSI}{yi};{xi}H{bc}");
                     }
                 }
                 lastPL = (newDivX, s.Height);
@@ -228,7 +200,7 @@ namespace ConsoleFFT {
             //}
         }
 
-        private static void RenderWaveform() {
+        private static void RenderWaveform(StringBuilder sb) {
             int ch2 = consoleHeight / 2;
             int ch3 = consoleHeight / 4;
             int ch = consoleHeight - 2;
@@ -239,7 +211,7 @@ namespace ConsoleFFT {
             int x, lx = 0;
             int y, ly = ch2;
             for(int i = 0; i < l; i++) {
-                x = (int)((double)i / hl);
+                x = (int)(i / hl);
                 //y = (ushort)(wavDstBufL[i] / f * ch2 + ch2);
                 y = (ushort)(WAVAvg(i) / f * ch2 + ch2);
 
@@ -247,20 +219,7 @@ namespace ConsoleFFT {
                     int tx = Lerp(lx, x, p);
                     int ty = Lerp(ly, y, p);
 
-                    if(ty < ch) {
-                        int index = ty * consoleWidth + tx;
-                        switch(renderCharMode) {
-                            case RenderCharModes.Multiple:
-                                if(ty < ch3 || ty > consoleHeight - ch3)
-                                    bc = c[2];
-                                else if(ty < ch2 - ch3 + 4 || ty > ch2 + ch3 - 4)
-                                    bc = c[1];
-                                else
-                                    bc = c[0];
-                                break;
-                        }
-                        conBuffer[index] = bc;
-                    }
+                    if(ty < ch) sb.Append($"{CSI}{y};{x}H{bc}");
                     if(tx == x && ty == y) break;
                 }
                 lx = x;
@@ -354,26 +313,13 @@ namespace ConsoleFFT {
                 Console.WriteLine("No capture/recoding devices found");
         }
 
-        private static void PrintHelp() {
+        private static void PrintHelp(StringBuilder sb) {
             if(showHelpDelay > 0) {
-                string str = $"[+][-]  ScaleFFT: {scaleFFT:F8}\n" +
-                             $"[+][-]  ScaleWav: {scaleWav:F8}\n" +
-                             $"[C]     Style:    {renderCharMode}\n" +
-                             $"[SPACE] Mode:     {renderMode}\n" +
-                             $"[ESC]   Exit";
+                sb.Append($"{CSI}1;1H{CSI}97;49m[+][-]  {CSI}94;49mScaleFFT: {CSI}36;49m{scaleFFT:F8}");
+                sb.Append($"{CSI}2;1H{CSI}97;49m[+][-]  {CSI}94;49mScaleWav: {CSI}36;49m{scaleWav:F8}");
+                sb.Append($"{CSI}3;1H{CSI}97;49m[SPACE] {CSI}94;49mMode:     {CSI}36;49m{renderMode}");
+                sb.Append($"{CSI}4;1H{CSI}97;49m[ESC]   {CSI}94;49mExit");
 
-                int x = 0;
-                int y = 0;
-                int k = 0;
-                while(k < str.Length) {
-                    if(str[k] == '\n') {
-                        x = 0;
-                        y++;
-                    } else {
-                        conBuffer[y * consoleWidth + x++] = str[k];
-                    }
-                    k++;
-                }
                 showHelpDelay--;
             }
         }
