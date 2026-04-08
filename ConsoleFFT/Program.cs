@@ -3,6 +3,7 @@ using OpenTK.Audio.OpenAL;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 // This might be interesting: https://www.reddit.com/r/csharp/comments/ox19m2/comment/jop0pc9/?utm_source=share&utm_medium=web3x&utm_name=web3xcss&utm_term=1&utm_content=share_button
@@ -10,12 +11,12 @@ using System.Threading.Tasks;
 //  public class Handler {
 //      Graphics buffer;//Used to render 
 //      Bitmap img;//Render object that will be visible
-    
+
 //      public Handler(int width, int height) {
 //          img = new Bitmap(width, height);
 //          buffer = Graphics.FromImage(img);
 //      }
-    
+
 //      public void DrawImage(Image toDraw, Point location, Size size) {
 //          Size fontSize = GetConsoleFontSize();//Get the font sie to calculate accurate image bounds
 //          Rectangle imgRect = new Rectangle(//Calculate image bounds
@@ -95,15 +96,15 @@ namespace ConsoleFFT {
             audioCapture = ALC.CaptureOpenDevice(deviceName, samplingRate, samplingFormat, bufferLengthSamples);
             ALC.CaptureStart(audioCapture);
 
-            int delay = 2 * (int)bufferLengthMs;
-            Task.Run(async () => {
-                StringBuilder sb = new();
-                while(true) {
-                    await Task.Delay(delay);
+            StringBuilder sb = new();
+            AutoResetEvent renderEvent = new(false);
 
-                    GetSamples();
+            Task.Run(async () => {
+                while(true) {
+                    renderEvent.WaitOne();
+
                     InitRenderer(sb);
-                    switch(renderMode) {
+                    switch (renderMode) {
                         case RenderModes.FFT:
                             RenderFFT(sb);
                             break;
@@ -114,6 +115,15 @@ namespace ConsoleFFT {
                     PrintHelp(sb);
 
                     Console.Write(sb.ToString());
+                }
+            });
+
+            int delay = 2 * (int)bufferLengthMs;
+            Task.Run(async () => {
+                while(true) {
+                    await Task.Delay(delay);
+
+                    GetSamples(renderEvent);
                 }
             });
 

@@ -3,6 +3,7 @@ using OpenTK.Mathematics;
 using System;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using static FFTLib.FFT;
 
 namespace ConsoleFFT {
@@ -44,7 +45,7 @@ namespace ConsoleFFT {
             ffWavSrcBufIndex = 0;
         }
 
-        private static void GetSamples() {
+        private static void GetSamples(AutoResetEvent resetEvent = null) {
             int availableSamples = ALC.GetAvailableSamples(audioCapture);
 
             if(availableSamples > 0) {
@@ -58,6 +59,7 @@ namespace ConsoleFFT {
 
                 ALC.CaptureSamples(audioCapture, buffer, availableSamples);
                 FillBuffer(availableSamples);
+                resetEvent?.Set();
             }
         }
 
@@ -70,7 +72,7 @@ namespace ConsoleFFT {
                         break;
                     } else if(fftWavDstIndex >= fftSize) {
                         fftWavDstIndex = 0;
-                        switch(renderMode) {
+                        switch (renderMode) {
                             case RenderModes.FFT:
                                 RunFFT();
                                 return;
