@@ -1,11 +1,38 @@
 ﻿using OpenTK;
 using OpenTK.Audio.OpenAL;
-using OpenTK.Compute.OpenCL;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Text;
 using System.Threading.Tasks;
+
+// This might be interesting: https://www.reddit.com/r/csharp/comments/ox19m2/comment/jop0pc9/?utm_source=share&utm_medium=web3x&utm_name=web3xcss&utm_term=1&utm_content=share_button
+// Using GDI to render on the console???
+//  public class Handler {
+//      Graphics buffer;//Used to render 
+//      Bitmap img;//Render object that will be visible
+    
+//      public Handler(int width, int height) {
+//          img = new Bitmap(width, height);
+//          buffer = Graphics.FromImage(img);
+//      }
+    
+//      public void DrawImage(Image toDraw, Point location, Size size) {
+//          Size fontSize = GetConsoleFontSize();//Get the font sie to calculate accurate image bounds
+//          Rectangle imgRect = new Rectangle(//Calculate image bounds
+//          location.X * fontSize.Width,
+//          location.Y * fontSize.Height,
+//          dimensions.Width * fontSize.Width,
+//          dimensions.Height * fontSize.Height);
+//          buffer.DrawImage(img, imgRect);//Use the 'buffer' Graphic instance to render the image to the Bitmap 'img'
+//      }
+    
+//      public void Render() {
+//          Graphics render = Graphics.FromHwnd(GetConsoleWindow());
+//          //Grab the Console handle for drawing
+//          render.DrawImage(img);//draw rendered image to Console
+//          buffer.Clear(Color.Gray); //use 'buffer' to wipe the rendered image with a background color(I used gray to have contrast to the Console background)
+//      }
+//  }
 
 namespace ConsoleFFT {
     public static partial class Program {
@@ -17,11 +44,12 @@ namespace ConsoleFFT {
 
         private static string deviceName = "";
         private static int samplingRate = 44100;
-        private static int fftSize = 1024;
+        private static int fftSize = 2048;
         private static double bufferLengthMs = 8;
         private static ALFormat samplingFormat = ALFormat.Mono16;
-        private static double scaleFFT = 0.004;
+        private static double scaleFFT = 0.005;
         private static double scaleWav = 0.0005;
+        private static bool useColor = false;
 
         private static ALCaptureDevice audioCapture;
 
@@ -30,11 +58,9 @@ namespace ConsoleFFT {
         private static int h1;
         private static int h2;
         private static readonly char[] c = ['\u2588', '\u25a0', '\u00b7']; // █ ■ ·
-        private const string CSI = "\e["; // Control Sequence Introducer (ANSI escape code)
+        private const string CSI = "\e["; // Control Sequence Introducer (ANSI escape code) https://en.wikipedia.org/wiki/ANSI_escape_code
 
         private const byte SampleToByte = 2;
-
-        private static StreamWriter stdout;
 
         private static int consoleWidth = 0;
         private static int consoleHeight = 0;
@@ -43,11 +69,6 @@ namespace ConsoleFFT {
         private static int showHelpDelay = helpDelay;
 
         private static void Main(string[] args) {
-            if(OperatingSystem.IsLinux()) {
-                scaleFFT /= 2500;
-                scaleWav /= 20;
-            }
-
             PrintHeader();
 
             try {
@@ -61,34 +82,26 @@ namespace ConsoleFFT {
 
             if(string.IsNullOrEmpty(deviceName)) ParseCommandline(["--device=0"]); // Set default capture device
 
-            bufferStride = BlittableValueType.StrideOf(buffer);
-
             InitFFT();
             StartMonitoring();
         }
 
         private static void StartMonitoring() {
-            //stdout = new(Console.OpenStandardOutput(), Encoding.UTF8);
-            //Console.SetOut(stdout);
             Console.CursorVisible = false;
+
+            bufferStride = BlittableValueType.StrideOf(buffer);
 
             int bufferLengthSamples = (int)((1.0 / bufferLengthMs * samplingRate) / bufferStride);
             audioCapture = ALC.CaptureOpenDevice(deviceName, samplingRate, samplingFormat, bufferLengthSamples);
             ALC.CaptureStart(audioCapture);
 
-            int delay = 30;
-            Task.Run(async () => {
-                while(true) {
-                    await Task.Delay(delay/2);
-                    GetSamples();
-                }
-            });
-
+            int delay = 2 * (int)bufferLengthMs;
             Task.Run(async () => {
                 StringBuilder sb = new();
                 while(true) {
                     await Task.Delay(delay);
 
+                    GetSamples();
                     InitRenderer(sb);
                     switch(renderMode) {
                         case RenderModes.FFT:
@@ -144,6 +157,10 @@ namespace ConsoleFFT {
                         }
                         showHelpDelay = helpDelay;
                         break;
+                    case ConsoleKey.F1:
+                    case ConsoleKey.H:
+                        showHelpDelay = helpDelay;
+                        break;
                 }
             }
 
@@ -151,6 +168,7 @@ namespace ConsoleFFT {
             ALC.CaptureCloseDevice(audioCapture);
 
             Console.Clear();
+            Console.ResetColor();
             Console.CursorVisible = true;
         }
 
@@ -180,24 +198,16 @@ namespace ConsoleFFT {
                 int v = Math.Min(consoleHeight, lastPL.Y);
                 for(int xi = lastPL.X; xi < newDivX; xi++) {
                     for(int yi = consoleHeight - v; yi < consoleHeight; yi++) {
+                        if (useColor) {
+                            if (yi > consoleHeight / 1.5) sb.Append($"{CSI}32m");
+                            else if (yi > consoleHeight / 3) sb.Append($"{CSI}93m");
+                            else sb.Append($"{CSI}31m");
+                        }
                         sb.Append($"{CSI}{yi};{xi}H{bc}");
                     }
                 }
                 lastPL = (newDivX, s.Height);
             }
-
-            // Lin X / Log Y ========================================================
-            //for(int x = 0; x < fftSize2; x++) {
-            //    int xi = (int)(x * (double)w / fftSize2);
-
-            //    double v = (FFTAvg(x) / fftWindowSum * 2) / 20.0;
-            //    v = Math.Min(Math.Log10(v + 1) / 10.0 * h, h);
-            //    v = Math.Min(h, v);
-
-            //    for(int y = h - (int)v; y < h; y++) {
-            //        b[y * w + xi] = c;
-            //    }
-            //}
         }
 
         private static void RenderWaveform(StringBuilder sb) {
@@ -289,6 +299,9 @@ namespace ConsoleFFT {
                     case "scaleWave": // Set WaveForm scale
                         if(!double.TryParse(value, out scaleWav)) throw new ArgumentException("Invalid argument value", value);
                         break;
+                    case "color": // Set use of color in rendering
+                        if(!bool.TryParse(value, out useColor)) throw new ArgumentException("Invalid argument value", value);
+                        break;
                     case "help": // Show documentation
                         PrintDocumentation();
                         return false;
@@ -339,6 +352,7 @@ namespace ConsoleFFT {
             Console.WriteLine($"--fft=n       Set the size of Fourier transform. By default, set to {fftSize:N0} bands");
             Console.WriteLine($"--scaleFFT=n  Set the FFT graph scale. By default, set to {scaleFFT:.################}"); // https://stackoverflow.com/questions/14964737/double-tostring-no-scientific-notation
             Console.WriteLine($"--scaleWav=n  Set the WaveForm graph scale. By default, set to {scaleWav:.################}");
+            Console.WriteLine($"--color=b     Set the use of color in rendering. By default, set to {useColor}");
             Console.WriteLine($"--help        This printout");
 
             Console.WriteLine();
