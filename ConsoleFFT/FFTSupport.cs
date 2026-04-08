@@ -1,6 +1,8 @@
 ﻿using OpenTK.Audio.OpenAL;
 using OpenTK.Mathematics;
 using System;
+using System.Diagnostics;
+using System.Linq;
 using static FFTLib.FFT;
 
 namespace ConsoleFFT {
@@ -10,7 +12,8 @@ namespace ConsoleFFT {
         private static double[] fftWindowValues;
         private static double[][] fftHist;
         private static ComplexDouble[] fftBuffer;
-        private static int histSize = 6;
+        private static int fftHistSize = 4;
+        private static int wavHistSize = 1;
         private static int fftSize2;
         private static int fftWavDstIndex;
         private static int ffWavSrcBufIndex;
@@ -18,13 +21,16 @@ namespace ConsoleFFT {
 
         private static void InitFFT() {
             fftSize2 = fftSize / 2;
-            fftHist = new double[histSize][];
+            fftHist = new double[fftHistSize][];
 
             wavDstBufL = new double[fftSize];
-            wavHist = new double[histSize][];
+            wavHist = new double[wavHistSize][];
 
-            for(int i = 0; i < histSize; i++) {
+            for(int i = 0; i < fftHistSize; i++) {
                 fftHist[i] = new double[fftSize2];
+            }
+
+            for(int i = 0; i < wavHistSize; i++) {
                 wavHist[i] = new double[fftSize2];
             }
 
@@ -43,7 +49,7 @@ namespace ConsoleFFT {
 
             if(availableSamples > 0) {
                 // FIXME: Is this an OpenTK bug?
-                if(OperatingSystem.IsLinux()) availableSamples /= 4;
+                //if(OperatingSystem.IsLinux()) availableSamples /= 4;
 
                 if(availableSamples * SampleToByte > buffer.Length * bufferStride) {
                     buffer = new short[MathHelper.NextPowerOfTwo(
@@ -62,46 +68,46 @@ namespace ConsoleFFT {
                         if(fftWavDstIndex >= fftSize) fftWavDstIndex = 0;
                         ffWavSrcBufIndex = 0;
                         break;
-                    } else if(fftWavDstIndex >= wavDstBufL.Length) {
+                    } else if(fftWavDstIndex >= fftSize) {
                         fftWavDstIndex = 0;
                         switch(renderMode) {
                             case RenderModes.FFT:
                                 RunFFT();
-                                goto ExitLoop;
+                                return;
                             case RenderModes.Waveform:
                                 RunWAV();
-                                goto ExitLoop;
+                                return;
                         }
                         break;
                     }
 
                     wavDstBufL[fftWavDstIndex] = buffer[ffWavSrcBufIndex] *
-                        (renderMode == RenderModes.FFT ? fftWindowValues[fftWavDstIndex] : 1.0);
+                        (renderMode == RenderModes.FFT
+                         ? fftWindowValues[fftWavDstIndex]
+                         : 1.0);
 
                     fftWavDstIndex++;
                     ffWavSrcBufIndex++;
                 }
             } while(fftWavDstIndex != 0 && ffWavSrcBufIndex != 0);
-
-        ExitLoop:;
         }
 
         private static void RunFFT() {
             FourierTransform(fftSize, wavDstBufL, fftBuffer, false);
 
             // Shift history back one spot
-            for(int i = 0; i < histSize - 1; i++) Array.Copy(fftHist[i + 1], 0, fftHist[i], 0, fftHist[0].Length);
+            Array.Copy(fftHist, 1, fftHist, 0, fftHist.Length - 1);
 
             // Update the last spot with the new data from the FFT using the Power() function
-            for(int i = 0; i < fftHist[0].Length; i++) fftHist[histSize - 1][i] = fftBuffer[i].Power();
+            fftHist[fftHistSize - 1] = [.. fftBuffer.Select(c => c.Power()) ];
         }
 
         private static void RunWAV() {
             // Shift history back one spot
-            for(int i = 0; i < histSize - 1; i++) Array.Copy(wavHist[i + 1], 0, wavHist[i], 0, wavHist[0].Length);
+            Array.Copy(wavHist, 1, wavHist, 0, wavHist.Length - 1);
 
             // Update the last spot with the new data from the WAV buffer
-            for(int i = 0; i < fftHist[0].Length; i++) wavHist[histSize - 1][i] = wavDstBufL[i];
+            wavHist[wavHistSize - 1] = wavDstBufL;
         }
 
         private static (int Width, int Height) FFT2Pts(int x, int w, int h, int fftSize, double scale = 1.0) {
@@ -114,18 +120,18 @@ namespace ConsoleFFT {
 
         private static double FFTAvg(int x) {
             double v = 0;
-            for(int i = 0; i < histSize; i++) {
-                v += fftHist[i][x];
+            for(int i = 0; i < fftHistSize; i++) {
+                v += fftHist[i][x] * (i + 1) / (double)fftHistSize;
             }
-            return v / histSize;
+            return v / fftHistSize;
         }
 
         private static double WAVAvg(int x) {
             double v = 0;
-            for(int i = 0; i < histSize; i++) {
-                v += wavHist[i][x];
+            for(int i = 0; i < wavHistSize; i++) {
+                v += wavHist[i][x] * (i + 1) / (double)wavHistSize;
             }
-            return v / histSize;
+            return v / wavHistSize;
         }
     }
 }
